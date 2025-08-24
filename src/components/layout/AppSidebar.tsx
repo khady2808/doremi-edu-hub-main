@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import {
+import { 
   Home,
   BookOpen,
   MessageSquare,
@@ -14,7 +14,11 @@ import {
   Users,
   BarChart3,
   LogOut,
-  GraduationCap
+  GraduationCap,
+  User,
+  Bell,
+  Video,
+  DollarSign
 } from 'lucide-react';
 import {
   Sidebar,
@@ -34,6 +38,7 @@ const studentMenuItems = [
   { title: 'Accueil', url: '/', icon: Home },
   { title: 'Mes Cours', url: '/courses', icon: BookOpen },
   { title: 'Messagerie', url: '/messages', icon: MessageSquare },
+  
   { title: 'Médiathèque', url: '/library', icon: FileText },
   { title: 'Stages', url: '/internships', icon: Briefcase },
   { title: 'Actualités', url: '/news', icon: Newspaper },
@@ -45,20 +50,31 @@ const instructorMenuItems = [
   { title: 'Accueil', url: '/', icon: Home },
   { title: 'Mes Cours', url: '/courses', icon: BookOpen },
   { title: 'Messagerie', url: '/messages', icon: MessageSquare },
+  
   { title: 'Étudiants', url: '/students', icon: Users },
+  { title: 'Vidéos & Revenus', url: '/instructor-videos', icon: Video },
   { title: 'Médiathèque', url: '/library', icon: FileText },
   { title: 'Actualités', url: '/news', icon: Newspaper },
   { title: 'Paramètres', url: '/settings', icon: Settings },
 ];
 
 const adminMenuItems = [
-  { title: 'Dashboard', url: '/', icon: BarChart3 },
+  { title: 'Dashboard', url: '/admin', icon: BarChart3 },
   { title: 'Utilisateurs', url: '/admin/users', icon: Users },
   { title: 'Cours', url: '/admin/courses', icon: BookOpen },
   { title: 'Documents', url: '/admin/documents', icon: FileText },
   { title: 'Actualités', url: '/admin/news', icon: Newspaper },
+  { title: 'Stages', url: '/admin/internships', icon: Briefcase },
   { title: 'Statistiques', url: '/admin/stats', icon: BarChart3 },
+  
   { title: 'Paramètres', url: '/admin/settings', icon: Settings },
+];
+
+const recruiterMenuItems = [
+  { title: 'Dashboard', url: '/recruiter', icon: BarChart3 },
+  { title: 'Mes Annonces', url: '/recruiter/offers', icon: Briefcase },
+  { title: 'Candidatures', url: '/recruiter/applications', icon: Users },
+  { title: 'Paramètres', url: '/settings', icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -79,6 +95,8 @@ export function AppSidebar() {
         return instructorMenuItems;
       case 'admin':
         return adminMenuItems;
+      case 'recruiter':
+        return recruiterMenuItems;
       default:
         return studentMenuItems;
     }
@@ -87,11 +105,13 @@ export function AppSidebar() {
   const menuItems = getMenuItems();
   const isActive = (path: string) => currentPath === path;
   const getNavCls = (active: boolean) =>
-    active ? "bg-primary text-white" : "hover:bg-muted/50";
+    active 
+      ? "bg-primary text-primary-foreground"
+      : "hover:bg-muted/60 dark:hover:bg-gray-800";
 
   return (
-    <Sidebar className={isCollapsed ? "w-16" : "w-64"} collapsible="icon">
-      <div className="p-4 border-b">
+    <Sidebar className={`${isCollapsed ? "w-16" : "w-64"} bg-white dark:bg-gray-950`} collapsible="icon">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <GraduationCap className="w-5 h-5 text-white" />
@@ -135,15 +155,28 @@ export function AppSidebar() {
         {/* User Profile Section */}
         <div className="mt-auto border-t pt-4">
           <div className="px-3 py-2">
-            {!isCollapsed && (
-              <div className="mb-2">
-                <p className="font-medium text-sm">{user.name}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
-                {user.isPremium && (
-                  <span className="premium-badge mt-1 inline-block">Premium</span>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center overflow-hidden">
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt="Photo de profil"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-4 h-4 text-white" />
                 )}
               </div>
-            )}
+              {!isCollapsed && (
+                <div>
+                  <p className="font-medium text-sm">{user.name}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                  {user.isPremium && (
+                    <span className="premium-badge mt-1 inline-block">Premium</span>
+                  )}
+                </div>
+              )}
+            </div>
             <button
               onClick={logout}
               className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"

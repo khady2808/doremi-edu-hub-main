@@ -15,7 +15,9 @@ import {
   MessageSquare,
   Calendar,
   Play,
-  Download
+  Download,
+  Video,
+  Upload
 } from 'lucide-react';
 import { mockCourses } from '../data/mockData';
 
@@ -182,6 +184,45 @@ const InstructorDashboard = () => {
       <div className="gradient-bg rounded-2xl p-6 text-white">
         <h1 className="text-2xl font-bold mb-2">Tableau de bord formateur</h1>
         <p className="text-blue-100">Gérez vos cours et suivez vos étudiants</p>
+      </div>
+
+      {/* Actions rapides */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Video className="w-5 h-5" />
+              Ajouter une vidéo
+            </CardTitle>
+            <CardDescription>
+              Partagez vos connaissances avec vos étudiants
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full" onClick={() => window.location.href = '/instructor/video-upload'}>
+              <Upload className="w-4 h-4 mr-2" />
+              Téléverser une vidéo
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Video className="w-5 h-5" />
+              Créer un live
+            </CardTitle>
+            <CardDescription>
+              Planifiez une session en direct
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full" onClick={() => window.location.href = '/instructor/live-session'}>
+              <Calendar className="w-4 h-4 mr-2" />
+              Créer une session live
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -398,6 +439,54 @@ const AdminDashboard = () => {
   );
 };
 
+const RecruiterDashboard = () => {
+  const mockApplications = [
+    { id: 'a1', offerTitle: 'Prof de Math - Lycée', candidate: 'Awa Ndiaye', date: '2025-02-01' },
+    { id: 'a2', offerTitle: "Chargé de formation", candidate: 'Mamadou Diallo', date: '2025-02-03' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="gradient-bg rounded-2xl p-6 text-white">
+        <h1 className="text-2xl font-bold mb-2">Tableau de bord Recruteur</h1>
+        <p className="text-blue-100">Publiez vos offres et suivez les candidatures</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Ajouter une offre d'emploi</CardTitle>
+            <CardDescription>Formulaire de publication (mock)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <input placeholder="Titre de l'offre" className="w-full border rounded px-3 py-2" />
+            <textarea placeholder="Description" className="w-full border rounded px-3 py-2 h-24" />
+            <Button className="w-full">Publier</Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Candidatures reçues</CardTitle>
+            <CardDescription>Fausse liste pour la démo</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {mockApplications.map(app => (
+              <div key={app.id} className="flex items-center justify-between p-3 border rounded">
+                <div>
+                  <div className="font-medium text-sm">{app.offerTitle}</div>
+                  <div className="text-xs text-muted-foreground">{app.candidate}</div>
+                </div>
+                <div className="text-xs text-muted-foreground">{new Date(app.date).toLocaleDateString('fr-FR')}</div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
 
@@ -410,6 +499,8 @@ export const Dashboard: React.FC = () => {
       return <InstructorDashboard />;
     case 'admin':
       return <AdminDashboard />;
+    case 'recruiter':
+      return <RecruiterDashboard />;
     default:
       return <StudentDashboard />;
   }

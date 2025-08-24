@@ -16,12 +16,14 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { ProfilePictureUpload } from '../components/settings/ProfilePictureUpload';
 import { ThemeToggle } from '../components/settings/ThemeToggle';
-import { EducationLevelSelector } from '../components/settings/EducationLevelSelector';
+import { NotificationSubscription } from '../components/ui/NotificationSubscription';
 import { EducationLevel } from '../types/course';
 import { supabase } from '../integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 export const Settings: React.FC = () => {
-  const { user, updateProfile, updateEducationLevel } = useAuth();
+  const { user, updateProfile } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -46,9 +48,7 @@ export const Settings: React.FC = () => {
     alert('Paramètres sauvegardés avec succès !');
   };
 
-  const handleEducationLevelChange = (level: EducationLevel) => {
-    updateEducationLevel(level);
-  };
+  // La sélection du niveau d'étude est maintenant gérée à l'inscription
 
   const handleCVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -89,13 +89,7 @@ export const Settings: React.FC = () => {
           {/* Profile Picture */}
           <ProfilePictureUpload />
 
-          {/* Education Level for Students */}
-          {user?.role === 'student' && (
-            <EducationLevelSelector
-              value={user.educationLevel}
-              onChange={handleEducationLevelChange}
-            />
-          )}
+          {/* Sélection du niveau d'étude déplacée vers le formulaire d'inscription */}
 
           {/* CV Upload for Instructors */}
           {/* SUPPRIMÉ : L'ajout de CV se fait désormais à l'inscription formateur */}
@@ -163,6 +157,9 @@ export const Settings: React.FC = () => {
           {/* Theme Settings */}
           <ThemeToggle />
 
+          {/* Email Notifications */}
+          <NotificationSubscription />
+
           {/* Storage Stats for Students */}
           {user?.role === 'student' && (
             <Card>
@@ -212,7 +209,7 @@ export const Settings: React.FC = () => {
                     </p>
                   </div>
                 ) : (
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full" onClick={() => navigate('/premium')}>
                     <Download className="w-4 h-4 mr-2" />
                     Passer à Premium
                   </Button>

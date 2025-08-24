@@ -18,6 +18,17 @@
   </head>
 
   <body>
+    <script>
+      // Appliquer le thème stocké avant le rendu pour éviter le flash et garantir la cohérence
+      try {
+        const saved = localStorage.getItem('doremi_theme');
+        if (saved === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch (e) {}
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

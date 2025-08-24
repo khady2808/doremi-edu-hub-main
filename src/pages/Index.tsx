@@ -1,307 +1,363 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { HeroBanner } from '@/components/ui/hero-banner';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
 import { 
   BookOpen, 
   Users, 
-  Award, 
+  Star, 
   TrendingUp, 
-  Star,
-  Play,
-  Download,
+  Calendar,
   Clock,
-  MessageCircle,
-  Bot,
-  GraduationCap,
-  Library,
-  Video,
-  FileText,
-  Bookmark,
-  PenTool
+  MapPin,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Award,
+  Target,
+  Heart
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { mockCourses } from '../data/mockData';
 
-const coursesAndBooksCarousel = [
+// Données des actualités avec des images sénégalaises
+const actualites = [
   {
     id: 1,
-    title: "Découverte de l'assurance vie",
-    image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=500&h=300&fit=crop",
-    category: "Finance",
-    level: "Débutant",
-    duration: "2h 30min",
-    rating: 4.8,
-    students: 1234,
-    isPremium: false,
-    type: "course"
+    title: "Nouveau programme de formation en informatique",
+    description: "Découvrez notre nouveau cursus spécialisé en développement web et mobile, conçu avec les meilleurs experts du Sénégal.",
+    image: "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=800&h=400&fit=crop",
+    category: "Formation",
+    date: "2025-01-15",
+    author: "Dr. Amadou Diallo",
+    location: "Dakar"
   },
   {
     id: 2,
-    title: "Manuel Complet de Finance Personnelle",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&h=300&fit=crop",
-    category: "Livre",
-    level: "Tous niveaux",
-    pages: 350,
-    rating: 4.9,
-    downloads: 2156,
-    isPremium: false,
-    type: "book"
+    title: "Cérémonie de remise des diplômes 2024",
+    description: "Plus de 500 étudiants ont reçu leur diplôme lors de notre cérémonie annuelle au Centre International de Conférences Abdou Diouf.",
+    image: "https://images.unsplash.com/photo-1523050854058-8df90110c9e1?w=800&h=400&fit=crop",
+    category: "Événement",
+    date: "2025-01-10",
+    author: "Fatou Sall",
+    location: "Dakar"
   },
   {
     id: 3,
-    title: "Investir en bourse pour débutants",
-    image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=500&h=300&fit=crop",
-    category: "Investissement",
-    level: "Intermédiaire",
-    duration: "3h 15min",
-    rating: 4.7,
-    students: 987,
-    isPremium: true,
-    type: "course"
+    title: "Partenariat avec l'Université Cheikh Anta Diop",
+    description: "Signature d'un accord de partenariat pour renforcer l'excellence académique et l'innovation technologique au Sénégal.",
+    image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=400&fit=crop",
+    category: "Partenariat",
+    date: "2025-01-08",
+    author: "Prof. Mariama Ba",
+    location: "Dakar"
   },
   {
     id: 4,
-    title: "Guide de l'Entrepreneur Digital",
-    image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=500&h=300&fit=crop",
-    category: "Entrepreneuriat",
-    level: "Avancé",
-    pages: 280,
-    rating: 4.6,
-    downloads: 756,
-    isPremium: true,
-    type: "book"
+    title: "Lancement du programme d'entrepreneuriat",
+    description: "Formation intensive de 6 mois pour développer les compétences entrepreneuriales des jeunes sénégalais.",
+    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=400&fit=crop",
+    category: "Innovation",
+    date: "2025-01-05",
+    author: "Ousmane Ndiaye",
+    location: "Thiès"
   },
   {
     id: 5,
-    title: "Cryptomonnaies et Blockchain",
-    image: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=500&h=300&fit=crop",
-    category: "Technologie",
-    level: "Intermédiaire",
-    duration: "4h 20min",
-    rating: 4.5,
-    students: 1567,
-    isPremium: true,
-    type: "course"
-  },
-  {
-    id: 6,
-    title: "Psychologie de l'Investissement",
-    image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=500&h=300&fit=crop",
-    category: "Psychologie",
-    level: "Avancé",
-    pages: 420,
-    rating: 4.8,
-    downloads: 892,
-    isPremium: false,
-    type: "book"
+    title: "Excellence académique : Nos lauréats 2024",
+    description: "Découvrez les parcours exceptionnels de nos meilleurs étudiants qui brillent dans leurs domaines respectifs.",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=400&fit=crop",
+    category: "Réussite",
+    date: "2025-01-03",
+    author: "Aminata Diop",
+    location: "Saint-Louis"
   }
 ];
 
-const announcements = [
-  "🎓 Nouveau cours : 'Comprendre les cryptomonnaies' maintenant disponible !",
-  "📚 Découvrez notre nouvelle bibliothèque digitale avec plus de 500 livres",
-  "🏆 Félicitations aux 500 nouveaux certifiés de ce mois !",
-  "💡 Webinaire gratuit le 25 octobre : 'Les tendances économiques 2024'",
-  "🔥 Offre spéciale : -30% sur tous les cours Premium jusqu'à la fin du mois !",
-  "👨‍🏫 Nouveaux formateurs experts rejoignent notre équipe pédagogique"
-];
-
 export const Index: React.FC = () => {
-  const { user } = useAuth();
-  const [currentAnnouncement, setCurrentAnnouncement] = React.useState(0);
-  const [showChatbot, setShowChatbot] = React.useState(false);
+  const { user, isAuthenticated } = useAuth();
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, boolean>>({});
 
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentAnnouncement((prev) => (prev + 1) % announcements.length);
-    }, 4000);
-    return () => clearInterval(timer);
+
+
+  // Auto-play du carrousel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % actualites.length);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  const handleChatbotClick = () => {
-    setShowChatbot(true);
-    // Simulation d'ouverture du chatbot
-    console.log("Chatbot intelligent activé - Prêt à vous aider !");
+
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % actualites.length);
   };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + actualites.length) % actualites.length);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Fonction de gestion d'erreur d'image
+  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = event.target as HTMLImageElement;
+    target.src = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=250&fit=crop';
+    target.onerror = null; // Éviter les boucles infinies
+  };
+
+  // Fonction de gestion du chargement d'image
+  const handleImageLoad = (courseId: string) => {
+    setImageLoadingStates(prev => ({ ...prev, [courseId]: false }));
+  };
+
+  const handleImageLoadStart = (courseId: string) => {
+    setImageLoadingStates(prev => ({ ...prev, [courseId]: true }));
+  };
+
+  // Fonction pour gérer le clic sur un cours
+  const handleCourseClick = useCallback((course: any) => {
+    console.log('Clic sur le cours:', course);
+    // Simulation de navigation vers le cours
+    alert(`Ouverture du cours : ${course.title}`);
+    // Ici on pourrait naviguer vers la page du cours
+    // window.location.href = `/courses?course=${course.id}`;
+  }, []);
+
+  // Fonction pour gérer le clic sur "Commencer maintenant"
+  const handleStartLearning = useCallback(() => {
+    console.log('Clic sur "Commencer maintenant"');
+    alert('Navigation vers la page des cours pour commencer l\'apprentissage');
+    // window.location.href = '/courses';
+  }, []);
+
+  // Fonction pour gérer le clic sur "Découvrir nos cours"
+  const handleDiscoverCourses = useCallback(() => {
+    console.log('Clic sur "Découvrir nos cours"');
+    alert('Navigation vers la page des cours pour découvrir tous les cours');
+    // window.location.href = '/courses';
+  }, []);
+
+  // Fonction pour gérer le clic sur "Lire plus"
+  const handleReadMore = useCallback((actualite: any) => {
+    alert(`Ouverture de l'article : ${actualite.title}`);
+    // Ici on pourrait naviguer vers la page des actualités
+    // window.location.href = `/news?article=${actualite.id}`;
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      {/* Enhanced Announcements Bar */}
-      <div className="bg-gradient-to-r from-primary to-blue-600 text-white py-3 px-4 text-center relative overflow-hidden z-30">
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="relative animate-fade-in">
-          <div className="flex items-center justify-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            {announcements[currentAnnouncement]}
-          </div>
-        </div>
-      </div>
-
-      {/* Hero Banner */}
-      <HeroBanner />
-
-      {/* Enhanced Courses and Books Carousel */}
-      <section className="py-16 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Cours & Livres Populaires</h2>
-            <p className="text-muted-foreground text-lg">Découvrez nos formations et ouvrages les plus appréciés</p>
-          </div>
-          
-          <Carousel className="w-full max-w-6xl mx-auto">
-            <CarouselContent>
-              {coursesAndBooksCarousel.map((item) => (
-                <CarouselItem key={item.id} className="md:basis-1/2 lg:basis-1/3">
-                  <Card className="h-full hover:shadow-lg transition-all duration-300 hover:scale-105">
-                    <div className="relative">
-                      <img 
-                        src={item.image} 
-                        alt={item.title}
-                        className="w-full h-48 object-cover rounded-t-lg"
-                      />
-                      {item.isPremium && (
-                        <Badge className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
-                          Premium
+      {/* Carrousel d'actualités */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="relative">
+            {/* Carrousel */}
+            <div className="relative h-96 md:h-[500px] overflow-hidden rounded-2xl shadow-2xl">
+              {actualites.map((actualite, index) => (
+                <div
+                  key={actualite.id}
+                  className={`absolute inset-0 transition-all duration-700 ease-in-out ${
+                    index === currentSlide ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
+                  }`}
+                >
+                  <div className="relative h-full">
+                    <img
+                      src={actualite.image}
+                      alt={actualite.title}
+                      className="w-full h-full object-cover"
+                      onError={handleImageError}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+                      <div className="flex items-center gap-4 mb-4">
+                        <Badge variant="secondary" className="bg-yellow-500 text-white">
+                          {actualite.category}
                         </Badge>
-                      )}
-                      <div className="absolute top-2 left-2">
-                        <Badge variant={item.type === 'course' ? 'default' : 'secondary'}>
-                          {item.type === 'course' ? (
-                            <><Video className="w-3 h-3 mr-1" /> Cours</>
-                          ) : (
-                            <><FileText className="w-3 h-3 mr-1" /> Livre</>
-                          )}
-                        </Badge>
-                      </div>
-                      <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center rounded-t-lg">
-                        <Button size="sm" variant="secondary" className="bg-white/90 hover:bg-white">
-                          {item.type === 'course' ? (
-                            <><Play className="w-4 h-4 mr-2" /> Aperçu</>
-                          ) : (
-                            <><Bookmark className="w-4 h-4 mr-2" /> Feuilleter</>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                    <CardHeader>
-                      <div className="flex justify-between items-start mb-2">
-                        <Badge variant="outline">{item.category}</Badge>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                          <span className="text-sm font-medium">{item.rating}</span>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="w-4 h-4" />
+                          {formatDate(actualite.date)}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="w-4 h-4" />
+                          {actualite.location}
                         </div>
                       </div>
-                      <CardTitle className="text-lg line-clamp-2">{item.title}</CardTitle>
-                      <CardDescription className="flex items-center gap-4 text-sm">
-                        {item.type === 'course' ? (
-                          <>
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {item.duration}
+                      <h3 className="text-2xl md:text-3xl font-bold mb-3">{actualite.title}</h3>
+                      <p className="text-lg mb-4 text-gray-200">{actualite.description}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-sm">
+                              {actualite.author.split(' ').map(n => n[0]).join('')}
                             </span>
-                            <span className="flex items-center gap-1">
-                              <Users className="w-4 h-4" />
-                              {item.students} étudiants
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="flex items-center gap-1">
-                              <FileText className="w-4 h-4" />
-                              {item.pages} pages
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Download className="w-4 h-4" />
-                              {item.downloads} téléchargements
-                            </span>
-                          </>
-                        )}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button className="w-full" variant={item.type === 'course' ? 'default' : 'outline'}>
-                        {item.type === 'course' ? 'Commencer le cours' : 'Télécharger le livre'}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </CarouselItem>
+                          </div>
+                          <span className="font-medium">{actualite.author}</span>
+                        </div>
+                        <button 
+                          className="px-4 py-2 border border-white text-white hover:bg-white hover:text-gray-900 rounded"
+                          onClick={() => {
+                            console.log('Clic sur "Lire plus" pour:', actualite.title);
+                            alert(`Ouverture de l'article : ${actualite.title}`);
+                          }}
+                        >
+                          Lire plus <ArrowRight className="w-4 h-4 ml-2 inline" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
-            </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
-          </Carousel>
-        </div>
-      </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-primary mb-2">10K+</div>
-              <div className="text-muted-foreground">Étudiants actifs</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-primary mb-2">500+</div>
-              <div className="text-muted-foreground">Cours disponibles</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-primary mb-2">200+</div>
-              <div className="text-muted-foreground">Formateurs experts</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-primary mb-2">95%</div>
-              <div className="text-muted-foreground">Satisfaction</div>
+              {/* Contrôles du carrousel */}
+              <button
+                onClick={prevSlide}
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white p-3 rounded-full backdrop-blur-sm transition-all"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button
+                onClick={nextSlide}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white p-3 rounded-full backdrop-blur-sm transition-all"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+
+              {/* Indicateurs */}
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+                {actualites.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`w-3 h-3 rounded-full transition-all ${
+                      index === currentSlide ? 'bg-yellow-500' : 'bg-white/50'
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Enhanced Intelligent Chatbot */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <div className="relative">
-          {showChatbot && (
-            <div className="absolute bottom-16 right-0 w-80 h-96 bg-white rounded-lg shadow-xl border animate-fade-in">
-              <div className="p-4 bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-t-lg">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Bot className="w-5 h-5" />
-                  Assistant DOREMI IA
-                </h3>
-                <p className="text-sm opacity-90">Comment puis-je vous aider ?</p>
-              </div>
-              <div className="p-4 space-y-3">
-                <div className="bg-gray-100 p-3 rounded-lg">
-                  <p className="text-sm">👋 Bonjour ! Je suis votre assistant intelligent. Je peux vous aider à :</p>
-                  <ul className="text-xs mt-2 space-y-1">
-                    <li>• Trouver des cours adaptés</li>
-                    <li>• Répondre à vos questions</li>
-                    <li>• Vous guider dans la plateforme</li>
-                    <li>• Recommander des livres</li>
-                  </ul>
+      {/* Section des cours populaires */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Cours populaires</h2>
+            <p className="text-gray-600">Découvrez nos formations les plus appréciées</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {mockCourses && mockCourses.length > 0 ? mockCourses.slice(0, 3).map((course) => (
+              <Card 
+                key={course.id} 
+                className="group hover:shadow-xl transition-all duration-300 overflow-hidden"
+              >
+                <div className="relative overflow-hidden">
+                  {imageLoadingStates[course.id] && (
+                    <div className="w-full h-48 bg-gray-200 animate-pulse flex items-center justify-center">
+                      <div className="text-gray-400">Chargement...</div>
+                    </div>
+                  )}
+                  <img
+                    src={course.thumbnail}
+                    alt={course.title}
+                    className={`w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300 ${
+                      imageLoadingStates[course.id] ? 'hidden' : ''
+                    }`}
+                    onError={handleImageError}
+                    onLoad={() => handleImageLoad(course.id)}
+                    onLoadStart={() => handleImageLoadStart(course.id)}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute top-4 right-4">
+                    <Badge className="bg-yellow-500 text-white shadow-lg">
+                      <Star className="w-3 h-3 mr-1 fill-current" />
+                      Populaire
+                    </Badge>
+                  </div>
+                  {course.isPremium && (
+                    <div className="absolute top-4 left-4">
+                      <Badge className="bg-purple-500 text-white shadow-lg">
+                        Premium
+                      </Badge>
+                    </div>
+                  )}
                 </div>
-                <Button 
-                  size="sm" 
-                  className="w-full"
-                  onClick={() => setShowChatbot(false)}
-                >
-                  Fermer
-                </Button>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-semibold mb-2 group-hover:text-blue-600 transition-colors">{course.title}</h3>
+                  <p className="text-gray-600 mb-4 line-clamp-2">{course.description}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                      <span className="text-sm text-gray-600">{course.rating} ({course.studentsCount} étudiants)</span>
+                    </div>
+                    <button 
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Clic sur le bouton "Voir le cours" pour:', course.title);
+                        alert(`Ouverture du cours : ${course.title}`);
+                      }}
+                    >
+                      Voir le cours
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+            )) : (
+              <div className="col-span-3 text-center py-8">
+                <p className="text-gray-500">Chargement des cours...</p>
               </div>
-            </div>
-          )}
-          <Button 
-            size="lg" 
-            className="rounded-full w-16 h-16 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 shadow-lg animate-pulse"
-            onClick={handleChatbotClick}
-          >
-            <Bot className="w-8 h-8" />
-          </Button>
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-ping"></div>
+            )}
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* Section CTA */}
+      <section className="py-16 bg-gradient-to-r from-blue-600 to-green-600 text-white">
+        <div className="max-w-4xl mx-auto text-center px-4">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">
+            Prêt à commencer votre apprentissage ?
+          </h2>
+          <p className="text-xl mb-8 text-blue-100">
+            Rejoignez des milliers d'étudiants qui ont déjà transformé leur avenir avec DOREMI
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button 
+              className="px-8 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium"
+              onClick={() => {
+                console.log('Clic sur "Commencer maintenant"');
+                alert('Navigation vers la page des cours pour commencer l\'apprentissage');
+              }}
+            >
+              Commencer maintenant
+            </button>
+            <button 
+              className="px-8 py-3 border-2 border-white text-white hover:bg-white hover:text-blue-600 rounded-lg font-medium"
+              onClick={() => {
+                console.log('Clic sur "Découvrir nos cours"');
+                alert('Navigation vers la page des cours pour découvrir tous les cours');
+              }}
+            >
+              Découvrir nos cours
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
+
+export default Index;

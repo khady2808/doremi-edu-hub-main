@@ -15,7 +15,8 @@ import {
   AlertCircle,
   GraduationCap,
   Award,
-  PenTool
+  PenTool,
+  AlertTriangle
 } from 'lucide-react';
 
 interface TeacherData {
@@ -60,6 +61,7 @@ export const TeacherRegistration: React.FC = () => {
     }
   });
   const [cvError, setCvError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFileUpload = (fileType: keyof TeacherData['documents'], file: File) => {
     if (fileType === 'cv') {
@@ -117,7 +119,8 @@ export const TeacherRegistration: React.FC = () => {
     icon: Icon, 
     fileType, 
     acceptedFormats,
-    currentFile 
+    currentFile,
+    isRequired = false
   }: {
     title: string;
     description: string;
@@ -125,17 +128,21 @@ export const TeacherRegistration: React.FC = () => {
     fileType: keyof TeacherData['documents'];
     acceptedFormats: string;
     currentFile: File | null;
+    isRequired?: boolean;
   }) => (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className={`hover:shadow-md transition-shadow ${isRequired && !currentFile ? 'border-red-300 bg-red-50' : ''}`}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Icon className="w-5 h-5 text-primary" />
           {title}
+          {isRequired && <span className="text-red-500">*</span>}
         </CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
+        <div className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors ${
+          isRequired && !currentFile ? 'border-red-300' : 'border-gray-300'
+        }`}>
           <input
             type="file"
             accept={acceptedFormats}
@@ -166,6 +173,11 @@ export const TeacherRegistration: React.FC = () => {
                 <p className="text-xs text-gray-500">
                   Formats acceptés: {acceptedFormats}
                 </p>
+                {isRequired && (
+                  <p className="text-xs text-red-500 font-medium">
+                    Ce document est obligatoire
+                  </p>
+                )}
               </div>
             )}
           </label>
@@ -253,6 +265,7 @@ export const TeacherRegistration: React.FC = () => {
           fileType="cv"
           acceptedFormats=".pdf"
           currentFile={teacherData.documents.cv}
+          isRequired={true}
         />
         
         <FileUploadComponent
@@ -262,6 +275,7 @@ export const TeacherRegistration: React.FC = () => {
           fileType="photo"
           acceptedFormats=".jpg,.jpeg,.png"
           currentFile={teacherData.documents.photo}
+          isRequired={true}
         />
         
         <FileUploadComponent
@@ -271,10 +285,12 @@ export const TeacherRegistration: React.FC = () => {
           fileType="idCard"
           acceptedFormats=".jpg,.jpeg,.png,.pdf"
           currentFile={teacherData.documents.idCard}
+          isRequired={true}
         />
       </div>
       {cvError && (
-        <div className="text-red-600 text-sm font-medium text-center">
+        <div className="text-red-600 text-sm font-medium text-center flex items-center justify-center gap-2">
+          <AlertTriangle className="w-4 h-4" />
           {cvError}
         </div>
       )}
@@ -286,6 +302,7 @@ export const TeacherRegistration: React.FC = () => {
             <h4 className="font-medium text-blue-900">Informations importantes</h4>
             <ul className="text-sm text-blue-700 mt-1 space-y-1">
               <li>• Tous les documents sont obligatoires pour valider votre candidature</li>
+              <li>• Le CV doit être au format PDF uniquement</li>
               <li>• Les fichiers doivent être clairement lisibles</li>
               <li>• Taille maximum : 5MB par fichier</li>
               <li>• Vos données sont sécurisées et confidentielles</li>
@@ -370,6 +387,28 @@ export const TeacherRegistration: React.FC = () => {
     );
   };
 
+  const handleSubmit = async () => {
+    if (!isStepValid(3)) {
+      alert('Veuillez remplir tous les champs obligatoires.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Simulation de l'envoi des données
+      console.log('Candidature soumise:', teacherData);
+      
+      // En production, appeler l'API d'inscription
+      // await register(teacherData.personalInfo.email, password, fullName, 'instructor', teacherData.documents.cv);
+      
+      alert('Candidature soumise avec succès ! Vous recevrez un email de confirmation.');
+    } catch (error) {
+      alert('Erreur lors de la soumission: ' + (error as Error).message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const isStepValid = (stepNumber: number) => {
     switch (stepNumber) {
       case 1:
@@ -379,7 +418,8 @@ export const TeacherRegistration: React.FC = () => {
         return (
           teacherData.documents.cv !== null &&
           teacherData.documents.photo !== null &&
-          teacherData.documents.idCard !== null
+          teacherData.documents.idCard !== null &&
+          !cvError
         );
       case 3:
         return teacherData.experience.education.trim() !== '' && 
@@ -456,12 +496,12 @@ export const TeacherRegistration: React.FC = () => {
                 </Button>
               ) : (
                 <Button 
-                  onClick={() => console.log('Candidature soumise:', teacherData)}
-                  disabled={!isStepValid(step)}
+                  onClick={handleSubmit}
+                  disabled={!isStepValid(step) || isSubmitting}
                   className="bg-gradient-to-r from-green-600 to-green-700"
                 >
                   <Award className="w-4 h-4 mr-2" />
-                  Soumettre ma candidature
+                  {isSubmitting ? 'Soumission...' : 'Soumettre ma candidature'}
                 </Button>
               )}
             </div>

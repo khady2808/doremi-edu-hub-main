@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,9 +17,14 @@ import {
   User,
   Tag,
   Book,
-  Star
+  Star,
+  Plus,
+  Video,
+  Play,
+  Clock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { videoNotificationService, VideoLibraryItem } from '../lib/videoNotificationService';
 
 interface Document {
   id: string;
@@ -99,92 +105,121 @@ const senegalBooks: Document[] = [
     category: 'Littérature Sénégalaise',
     genre: 'Roman philosophique',
     uploadDate: '2024-02-10',
-    size: '2.0 MB',
-    isPremium: true,
-    downloadCount: 1100,
-    tags: ['philosophie', 'éducation', 'spiritualité', 'identité'],
-    imageUrl: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=600&fit=crop',
+    size: '1.9 MB',
+    isPremium: false,
+    downloadCount: 890,
+    tags: ['philosophie', 'éducation', 'tradition', 'modernité'],
+    imageUrl: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&h=600&fit=crop',
     rating: 4.9,
     country: 'Sénégal'
   },
   {
     id: 'book5',
-    title: 'Conte d\'Amadou Koumba',
+    title: 'Les contes d\'Amadou Koumba',
     author: 'Birago Diop',
-    description: 'Recueil de contes traditionnels wolof qui préserve la richesse de l\'oralité africaine.',
+    description: 'Recueil de contes traditionnels sénégalais qui perpétuent la sagesse ancestrale et les valeurs culturelles.',
     type: 'book',
     category: 'Littérature Sénégalaise',
     genre: 'Contes',
     uploadDate: '2024-02-15',
     size: '1.5 MB',
     isPremium: false,
-    downloadCount: 890,
-    tags: ['contes', 'tradition', 'oralité', 'culture'],
-    imageUrl: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop',
+    downloadCount: 1200,
+    tags: ['contes', 'tradition', 'sagesse', 'culture'],
+    imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop',
     rating: 4.5,
-    country: 'Sénégal'
-  },
-  {
-    id: 'book6',
-    title: 'Le docker noir',
-    author: 'Ousmane Sembène',
-    description: 'Premier roman de Sembène qui dénonce l\'exploitation des travailleurs africains dans les ports de Marseille.',
-    type: 'book',
-    category: 'Littérature Sénégalaise',
-    genre: 'Roman social',
-    uploadDate: '2024-02-20',
-    size: '2.2 MB',
-    isPremium: false,
-    downloadCount: 1050,
-    tags: ['travail', 'immigration', 'justice', 'société'],
-    imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=600&fit=crop',
-    rating: 4.6,
     country: 'Sénégal'
   }
 ];
 
-const additionalDocuments: Document[] = [
+const allDocuments: Document[] = [
+  ...senegalBooks,
   {
     id: 'doc1',
-    title: 'Guide de mathématiques avancées',
-    author: 'Professeur Diagne',
-    description: 'Manuel complet pour les étudiants en sciences',
+    title: 'Manuel de Mathématiques - Terminale',
+    author: 'Ministère de l\'Éducation',
+    description: 'Manuel officiel de mathématiques pour les élèves de terminale au Sénégal.',
     type: 'pdf',
     category: 'Éducation',
     genre: 'Manuel',
-    uploadDate: '2024-03-10',
-    size: '5.5 MB',
-    isPremium: true,
-    downloadCount: 456,
-    tags: ['mathématiques', 'sciences', 'manuel'],
+    uploadDate: '2024-01-10',
+    size: '15.2 MB',
+    isPremium: false,
+    downloadCount: 2340,
+    tags: ['mathématiques', 'éducation', 'lycée', 'officiel'],
     imageUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=600&fit=crop',
-    rating: 4.4
+    rating: 4.3
   },
   {
     id: 'doc2',
-    title: 'Histoire du Sénégal moderne',
-    author: 'Dr. Fatou Sall',
-    description: 'Chronologie détaillée de l\'histoire contemporaine sénégalaise',
+    title: 'Histoire du Sénégal - De l\'Antiquité à nos jours',
+    author: 'Dr. Mamadou Diouf',
+    description: 'Ouvrage de référence sur l\'histoire complète du Sénégal, de ses origines à l\'époque contemporaine.',
     type: 'pdf',
     category: 'Histoire',
     genre: 'Essai',
-    uploadDate: '2024-03-05',
-    size: '3.8 MB',
-    isPremium: false,
-    downloadCount: 678,
-    tags: ['histoire', 'sénégal', 'politique'],
-    imageUrl: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=600&fit=crop',
+    uploadDate: '2024-01-25',
+    size: '8.7 MB',
+    isPremium: true,
+    downloadCount: 567,
+    tags: ['histoire', 'sénégal', 'référence', 'académique'],
+    imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop',
     rating: 4.7
   }
 ];
 
-const allDocuments = [...senegalBooks, ...additionalDocuments];
+const CYCLE_TO_TAGS: Record<string, string[]> = {
+  lyceen: ['Littérature Sénégalaise', 'Éducation'],
+  licence: ['Éducation', 'Littérature Africaine'],
+  master: ['Éducation', 'Essai'],
+  doctorat: ['Éducation', 'Manuel']
+};
 
 export const Library: React.FC = () => {
   const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedGenre, setSelectedGenre] = useState('all');
+  const [videos, setVideos] = useState<VideoLibraryItem[]>([]);
+  const [selectedVideo, setSelectedVideo] = useState<VideoLibraryItem | null>(null);
+
+  // Charger les vidéos depuis le service
+  useEffect(() => {
+    const loadVideos = () => {
+      try {
+        const videoLibrary = videoNotificationService.getVideoLibrary();
+        console.log('📚 Vidéos chargées depuis la bibliothèque:', videoLibrary.length);
+        
+        // Trier par date de publication (plus récentes en premier)
+        const sortedVideos = videoLibrary.sort((a, b) => 
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+        );
+        
+        setVideos(sortedVideos);
+      } catch (error) {
+        console.error('Erreur lors du chargement des vidéos:', error);
+        setVideos([]);
+      }
+    };
+
+    // Charger immédiatement
+    loadVideos();
+
+    // Recharger toutes les 3 secondes pour les nouvelles vidéos des formateurs
+    const interval = setInterval(loadVideos, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Mettre à jour l'URL quand la recherche change
+  useEffect(() => {
+    if (searchTerm) {
+      setSearchParams({ search: searchTerm });
+    } else {
+      setSearchParams({});
+    }
+  }, [searchTerm, setSearchParams]);
 
   const categories = ['all', 'Littérature Sénégalaise', 'Littérature Africaine', 'Éducation', 'Histoire'];
   const genres = ['all', 'Roman', 'Roman philosophique', 'Roman social', 'Contes', 'Essai', 'Manuel'];
@@ -196,8 +231,17 @@ export const Library: React.FC = () => {
                          doc.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = selectedCategory === 'all' || doc.category === selectedCategory;
     const matchesGenre = selectedGenre === 'all' || doc.genre === selectedGenre;
-    
-    return matchesSearch && matchesCategory && matchesGenre;
+
+    // Si l'utilisateur est étudiant et a un cycle, filtrer par catégories/genres tags liés
+    let matchesCycle = true;
+    if (user?.role === 'student' && user.studentCycle) {
+      const allowed = CYCLE_TO_TAGS[user.studentCycle] || [];
+      matchesCycle =
+        allowed.length === 0 ||
+        allowed.includes(doc.category) ||
+        allowed.some(tag => doc.tags.includes(tag));
+    }
+    return matchesSearch && matchesCategory && matchesGenre && matchesCycle;
   });
 
   const getFileIcon = (type: string) => {
@@ -243,6 +287,34 @@ export const Library: React.FC = () => {
       return;
     }
     alert(`Ouverture de la prévisualisation de "${document.title}"`);
+  };
+
+  const handleWatchVideo = (video: VideoLibraryItem) => {
+    console.log('🎬 Tentative de lecture vidéo:', video);
+    console.log('📹 URL de la vidéo:', video.fileUrl);
+    
+    // Vérifier si la vidéo a une URL valide
+    if (!video.fileUrl || video.fileUrl.length < 10) {
+      alert('Cette vidéo n\'a pas d\'URL valide. Veuillez contacter l\'administrateur.');
+      return;
+    }
+    
+    try {
+      // Incrémenter les vues
+      videoNotificationService.incrementViews(video.id);
+      
+      console.log(`✅ Vue ajoutée pour la vidéo: ${video.title}`);
+      
+      // Ouvrir la vidéo dans le modal
+      setSelectedVideo(video);
+    } catch (error) {
+      console.error('❌ Erreur lors de la lecture de la vidéo:', error);
+      alert('Erreur lors de la lecture de la vidéo. Veuillez réessayer.');
+    }
+  };
+
+  const closeVideoModal = () => {
+    setSelectedVideo(null);
   };
 
   return (
@@ -298,127 +370,455 @@ export const Library: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Results count */}
-      <div className="flex justify-between items-center">
-        <p className="text-muted-foreground">
-          {filteredDocuments.length} document{filteredDocuments.length > 1 ? 's' : ''} trouvé{filteredDocuments.length > 1 ? 's' : ''}
-        </p>
-      </div>
-
-      {/* Documents Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredDocuments.map((document) => (
-          <Card key={document.id} className={`hover:shadow-lg transition-all duration-300 hover:scale-105 ${!canAccess(document) ? 'opacity-75' : ''}`}>
-            <div className="relative">
-              <img 
-                src={document.imageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=600&fit=crop'} 
-                alt={document.title}
-                className="w-full h-48 object-cover rounded-t-lg"
-              />
-              {document.isPremium && (
-                <Badge className="absolute top-2 right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
-                  <Crown className="w-3 h-3 mr-1" />
-                  Premium
-                </Badge>
-              )}
-              <div className="absolute top-2 left-2">
-                <Badge variant={document.type === 'book' ? 'default' : 'secondary'}>
-                  {getTypeLabel(document.type)}
-                </Badge>
-              </div>
-              {document.country && (
-                <div className="absolute bottom-2 left-2">
-                  <Badge variant="outline" className="bg-white/90">
-                    {document.country}
+      {/* Section Vidéos des Formateurs */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Video className="w-6 h-6 text-blue-600" />
+              Vidéos des Formateurs
+            </h2>
+            <p className="text-muted-foreground">
+              🎬 Vidéos fiables publiées par les formateurs - toujours fonctionnelles !
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-sm">
+              {videos.length} vidéo{videos.length > 1 ? 's' : ''}
+            </Badge>
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Créer une vidéo de test avec une URL de démonstration fiable
+                const testVideo = {
+                  id: `test_${Date.now()}`,
+                  title: '🎬 Vidéo de démonstration',
+                  description: 'Big Buck Bunny - Vidéo de test fonctionnelle',
+                  instructorName: 'Formateur Test',
+                  instructorId: 'test_instructor',
+                  fileUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+                  views: 0,
+                  publishedAt: new Date().toISOString(),
+                  duration: '10:34',
+                  thumbnail: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=200&fit=crop'
+                };
+                
+                // Ajouter à la bibliothèque
+                const currentVideos = videoNotificationService.getVideoLibrary();
+                const updatedVideos = [testVideo, ...currentVideos];
+                localStorage.setItem('doremi_video_library', JSON.stringify(updatedVideos));
+                setVideos(updatedVideos);
+                
+                alert('✅ Vidéo de démonstration ajoutée ! Cliquez maintenant sur "Regarder" pour tester.');
+              }}
+            >
+              🧪 Ajouter Vidéo Test
+            </Button>
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={() => {
+                if (confirm('⚠️ Nettoyer toutes les anciennes données vidéo corrompues ?')) {
+                  try {
+                    // Nettoyer toutes les données vidéo
+                    localStorage.removeItem('doremi_video_library');
+                    localStorage.removeItem('doremi_video_notifications');
+                    localStorage.removeItem('doremi_videos');
+                    localStorage.removeItem('doremi_admin_notifications');
+                    
+                    // Recharger les vidéos (vide)
+                    setVideos([]);
+                    
+                    console.log('🧹 Toutes les données vidéo nettoyées');
+                    alert('✅ Données vidéo nettoyées ! Les nouvelles vidéos publiées par les formateurs fonctionneront parfaitement.');
+                    
+                  } catch (error) {
+                    console.error('❌ Erreur lors du nettoyage:', error);
+                    alert('❌ Erreur lors du nettoyage.');
+                  }
+                }
+              }}
+            >
+              🧹 Réinitialiser
+            </Button>
+                      <Button 
+            variant="default" 
+            size="sm"
+            onClick={() => {
+              try {
+                // Créer une vidéo de test avec une URL fiable
+                const testVideo = {
+                  id: `test_${Date.now()}`,
+                  title: '✅ Test - Vidéo des Étudiants',
+                  description: 'Cette vidéo montre ce que voient les étudiants quand un formateur publie.',
+                  instructorName: 'Formateur DOREMI',
+                  instructorId: 'test_instructor',
+                  fileUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+                  views: 0,
+                  publishedAt: new Date().toISOString(),
+                  duration: '10:53',
+                  thumbnail: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=200&fit=crop'
+                };
+                
+                // Ajouter à la bibliothèque
+                const currentVideos = videoNotificationService.getVideoLibrary();
+                const updatedVideos = [testVideo, ...currentVideos];
+                localStorage.setItem('doremi_video_library', JSON.stringify(updatedVideos));
+                setVideos(updatedVideos);
+                
+                alert('✅ Vidéo de test créée ! Ceci montre ce que voient les étudiants.');
+              } catch (error) {
+                console.error('Erreur lors de l\'ajout de la vidéo de test:', error);
+                alert('❌ Erreur lors de l\'ajout de la vidéo de test');
+              }
+            }}
+          >
+            🎬 Test Étudiant
+          </Button>
+          </div>
+        </div>
+        
+        {videos.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {videos.map((video) => (
+              <Card key={video.id} className="group hover:shadow-xl transition-all duration-300 hover:scale-105">
+                {/* Thumbnail Section */}
+                <div className="relative overflow-hidden">
+                  <img 
+                    src={video.thumbnail || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=200&fit=crop'} 
+                    alt={video.title}
+                    className="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                  
+                  {/* Play Button Overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-white/90 rounded-full p-2">
+                      <Play className="w-6 h-6 text-blue-600" />
+                    </div>
+                  </div>
+                  
+                  {/* Video Badge */}
+                  <Badge className="absolute top-3 left-3 bg-blue-600 text-white shadow-lg">
+                    <Video className="w-3 h-3 mr-1" />
+                    Vidéo
                   </Badge>
                 </div>
-              )}
-            </div>
-            
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <CardTitle className="text-lg line-clamp-2 mb-1">{document.title}</CardTitle>
-                  <p className="text-sm text-muted-foreground font-medium">{document.author}</p>
+                
+                {/* Content Section */}
+                <div className="p-4 space-y-3">
+                  {/* Title and Instructor */}
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-lg leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors">
+                      {video.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground font-medium flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      Par {video.instructorName}
+                    </p>
+                  </div>
+                  
+                  {/* Description */}
+                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                    {video.description}
+                  </p>
+                  
+                  {/* Metadata */}
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>{new Date(video.publishedAt).toLocaleDateString('fr-FR')}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Eye className="w-3 h-3" />
+                        <span>{video.views} vue{video.views > 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                    {video.duration && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{video.duration}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 pt-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 h-8 text-xs group-hover:border-blue-300 group-hover:text-blue-600 transition-colors"
+                      onClick={() => handleWatchVideo(video)}
+                    >
+                      <Play className="w-3 h-3 mr-1" />
+                      Regarder
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="flex-1 h-8 text-xs bg-blue-600 hover:bg-blue-700 transition-colors"
+                      onClick={() => {
+                        videoNotificationService.incrementViews(video.id);
+                        // Pour le téléchargement, on peut essayer de télécharger le fichier
+                        if (video.fileUrl.startsWith('blob:')) {
+                          alert('Téléchargement des vidéos blob en cours de développement');
+                        } else {
+                          window.open(video.fileUrl, '_blank');
+                        }
+                      }}
+                    >
+                      <Download className="w-3 h-3 mr-1" />
+                      Télécharger
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">Aucune vidéo disponible pour le moment</p>
+            <p className="text-sm text-gray-500 mt-2">Les formateurs n'ont pas encore publié de vidéos</p>
+          </div>
+        )}
+      </div>
+
+      {/* Section Documents */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Book className="w-6 h-6 text-amber-600" />
+              Documents et Livres
+            </h2>
+            <p className="text-muted-foreground">
+              Collection d'ouvrages sénégalais et africains
+            </p>
+          </div>
+        </div>
+
+        {/* Results count */}
+        <div className="flex justify-between items-center">
+          <p className="text-muted-foreground">
+            {filteredDocuments.length} document{filteredDocuments.length > 1 ? 's' : ''} trouvé{filteredDocuments.length > 1 ? 's' : ''}
+          </p>
+        </div>
+
+        {/* Documents Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredDocuments.map((document) => (
+            <Card key={document.id} className={`group hover:shadow-xl transition-all duration-300 hover:scale-105 ${!canAccess(document) ? 'opacity-75' : ''}`}>
+              {/* Image Section */}
+              <div className="relative overflow-hidden">
+                <img 
+                  src={document.imageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=600&fit=crop'} 
+                  alt={document.title}
+                  className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
+                />
+                
+                {/* Badges Overlay */}
+                <div className="absolute top-3 left-3 flex flex-col gap-2">
+                  <Badge variant={document.type === 'book' ? 'default' : 'secondary'} className="shadow-lg">
+                    {getTypeLabel(document.type)}
+                  </Badge>
+                  {document.country && (
+                    <Badge variant="outline" className="bg-white/95 shadow-lg">
+                      {document.country}
+                    </Badge>
+                  )}
+                </div>
+                
+                {/* Premium Badge */}
+                {document.isPremium && (
+                  <Badge className="absolute top-3 right-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg">
+                    <Crown className="w-3 h-3 mr-1" />
+                    Premium
+                  </Badge>
+                )}
+              </div>
+              
+              {/* Content Section */}
+              <div className="p-4 space-y-3">
+                {/* Title and Author */}
+                <div className="space-y-1">
+                  <h3 className="font-bold text-lg leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors">
+                    {document.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    Par {document.author}
+                  </p>
                   {document.rating && (
-                    <div className="flex items-center gap-1 mt-1">
+                    <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span className="text-sm font-medium">{document.rating}</span>
+                      <span className="text-sm font-semibold">{document.rating}</span>
                     </div>
                   )}
                 </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="space-y-3">
-                <CardDescription className="line-clamp-3">
-                  {document.description}
-                </CardDescription>
                 
+                {/* Description */}
+                <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                  {document.description}
+                </p>
+                
+                {/* Tags */}
                 <div className="flex flex-wrap gap-1">
-                  {document.tags.slice(0, 3).map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
-                      <Tag className="w-3 h-3 mr-1" />
+                  {document.tags.slice(0, 2).map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-xs px-2 py-1">
                       {tag}
                     </Badge>
                   ))}
+                  {document.tags.length > 2 && (
+                    <Badge variant="outline" className="text-xs px-2 py-1">
+                      +{document.tags.length - 2}
+                    </Badge>
+                  )}
                 </div>
                 
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>{new Date(document.uploadDate).toLocaleDateString('fr-FR')}</span>
+                {/* Metadata */}
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      <span>{new Date(document.uploadDate).toLocaleDateString('fr-FR')}</span>
+                    </div>
+                    <span className="font-medium">{document.size}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>{document.size}</span>
                     <span>{document.downloadCount} téléchargements</span>
+                    <div className="flex items-center gap-1">
+                      <Download className="w-3 h-3" />
+                      <span className="font-medium">Populaire</span>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="flex gap-2 pt-2">
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-1">
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="flex-1"
+                    className="flex-1 h-8 text-xs group-hover:border-blue-300 group-hover:text-blue-600 transition-colors"
                     onClick={() => handlePreview(document)}
                     disabled={!canAccess(document)}
                   >
-                    <Eye className="w-4 h-4 mr-2" />
+                    <Eye className="w-3 h-3 mr-1" />
                     Lire
                   </Button>
                   <Button 
                     size="sm" 
-                    className="flex-1"
+                    className="flex-1 h-8 text-xs bg-blue-600 hover:bg-blue-700 transition-colors"
                     onClick={() => handleDownload(document)}
                     disabled={!canAccess(document)}
                   >
-                    <Download className="w-4 h-4 mr-2" />
+                    <Download className="w-3 h-3 mr-1" />
                     Télécharger
                   </Button>
                 </div>
                 
+                {/* Premium Notice */}
                 {!canAccess(document) && (
-                  <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                    <div className="flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-200">
-                      <Crown className="w-4 h-4" />
-                      <span>Accès Premium requis</span>
+                  <div className="mt-2 p-2 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-xs text-yellow-800">
+                      <Crown className="w-3 h-3" />
+                      <span className="font-medium">Accès Premium requis</span>
                     </div>
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            </Card>
+          ))}
+        </div>
+
+        {filteredDocuments.length === 0 && (
+          <div className="text-center py-12">
+            <Book className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Aucun document trouvé</h3>
+            <p className="text-muted-foreground">
+              Essayez de modifier vos critères de recherche
+            </p>
+          </div>
+        )}
       </div>
 
-      {filteredDocuments.length === 0 && (
-        <div className="text-center py-12">
-          <Book className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Aucun document trouvé</h3>
-          <p className="text-muted-foreground">
-            Essayez de modifier vos critères de recherche
-          </p>
+      {/* Floating Action Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button 
+          size="lg" 
+          className="rounded-full w-14 h-14 shadow-lg bg-blue-600 hover:bg-blue-700 transition-all duration-300 hover:scale-110"
+          onClick={() => alert('Fonctionnalité d\'ajout de document à venir')}
+        >
+          <Plus className="w-6 h-6" />
+        </Button>
+      </div>
+
+      {/* Modal Vidéo */}
+      {selectedVideo && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">{selectedVideo.title}</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={closeVideoModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </Button>
+            </div>
+            
+            <div className="p-4">
+              <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                {/* Utiliser la vraie vidéo du formateur */}
+                <video 
+                  src={selectedVideo.fileUrl}
+                  controls 
+                  className="w-full h-full"
+                  autoPlay
+                  onError={(e) => {
+                    console.error('❌ Erreur de chargement vidéo:', e);
+                    const videoElement = e.target as HTMLVideoElement;
+                    videoElement.style.display = 'none';
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'flex items-center justify-center h-full text-white';
+                    errorDiv.innerHTML = `
+                      <div class="text-center">
+                        <div class="text-2xl mb-2">🎬</div>
+                        <div class="text-lg font-semibold mb-2">Vidéo: ${selectedVideo.title}</div>
+                        <div class="text-sm opacity-75">Par ${selectedVideo.instructorName}</div>
+                        <div class="text-xs opacity-50 mt-2">URL: ${selectedVideo.fileUrl.substring(0, 50)}...</div>
+                      </div>
+                    `;
+                    videoElement.parentElement?.appendChild(errorDiv);
+                  }}
+                  onLoadStart={() => {
+                    console.log('🎬 Début du chargement de la vidéo:', selectedVideo.title, selectedVideo.fileUrl);
+                  }}
+                  onCanPlay={() => {
+                    console.log('✅ Vidéo prête à être lue:', selectedVideo.title);
+                  }}
+                >
+                  Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+              </div>
+              
+              <div className="mt-4 space-y-2">
+                <p className="text-sm text-gray-600">
+                  <strong>Formateur :</strong> {selectedVideo.instructorName}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <strong>Description :</strong> {selectedVideo.description}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <strong>Publié le :</strong> {new Date(selectedVideo.publishedAt).toLocaleDateString('fr-FR')}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <strong>Vues :</strong> {selectedVideo.views}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
