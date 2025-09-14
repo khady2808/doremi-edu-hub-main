@@ -41,6 +41,7 @@ interface TeacherData {
 
 export const TeacherRegistration: React.FC = () => {
   const [step, setStep] = useState(1);
+  const [newSpec, setNewSpec] = useState('');
   const [teacherData, setTeacherData] = useState<TeacherData>({
     personalInfo: {
       firstName: '',
@@ -314,7 +315,6 @@ export const TeacherRegistration: React.FC = () => {
   );
 
   const renderStep3 = () => {
-    const [newSpec, setNewSpec] = useState('');
 
     return (
       <div className="space-y-6">
