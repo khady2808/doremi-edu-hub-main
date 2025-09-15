@@ -376,7 +376,7 @@ export const RecruiterApplications: React.FC = () => {
                         <User className="w-4 h-4 text-blue-600" />
                         <span className="font-medium">{app.userName}</span>
                         <Badge variant="outline" className="text-xs">
-                          {app.userRole === 'student' ? 'Étudiant' : 'Instructeur'}
+                          {app.userRole === 'student' ? 'Étudiant' : 'Formateur'}
                         </Badge>
                       </div>
                       
@@ -524,7 +524,7 @@ export const RecruiterApplications: React.FC = () => {
                   <div><strong>Nom:</strong> {selectedApplication.userName}</div>
                   <div><strong>Email:</strong> {selectedApplication.userEmail}</div>
                   <div><strong>Téléphone:</strong> {selectedApplication.userPhone || 'Non renseigné'}</div>
-                  <div><strong>Rôle:</strong> {selectedApplication.userRole === 'student' ? 'Étudiant' : 'Instructeur'}</div>
+                  <div><strong>Rôle:</strong> {selectedApplication.userRole === 'student' ? 'Étudiant' : 'Formateur'}</div>
                 </div>
               </div>
               

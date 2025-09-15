@@ -39,7 +39,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'student' | 'instructor' | 'admin' | 'recruiter';
+  role: 'student' | 'teacher' | 'admin' | 'recruiter';
   isPremium: boolean;
   avatar?: string;
   joinedDate: string;

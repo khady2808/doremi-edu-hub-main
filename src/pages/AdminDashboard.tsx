@@ -94,7 +94,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'student' | 'instructor' | 'admin';
+      role: 'student' | 'teacher' | 'admin' | 'recruiter';
   status: 'active' | 'inactive' | 'pending';
   joinDate: string;
   lastLogin: string;
@@ -205,7 +205,7 @@ export const AdminDashboard: React.FC = () => {
       id: '2',
       name: 'Amadou Diallo',
       email: 'amadou.diallo@email.com',
-      role: 'instructor',
+      role: 'teacher',
       status: 'active',
       joinDate: '2024-01-14',
       lastLogin: '2024-01-15T09:15:00Z',
