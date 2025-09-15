@@ -225,11 +225,11 @@ export const Settings: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="text-center p-4 bg-muted rounded-lg">
-                <p className="font-medium capitalize">{user?.role === 'instructor' ? 'Formateur' : user?.role}</p>
+                <p className="font-medium capitalize">{user?.role === 'teacher' ? 'Formateur' : user?.role}</p>
                 {user?.isPremium && (
                   <span className="premium-badge mt-2 inline-block">Premium</span>
                 )}
-                {user?.role === 'instructor' && (
+                {user?.role === 'teacher' && (
                   <div className="mt-2">
                     <span className={`text-xs px-2 py-1 rounded ${
                       user.isVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'

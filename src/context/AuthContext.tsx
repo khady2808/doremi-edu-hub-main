@@ -4,6 +4,7 @@ import { User, AuthState, LiveSession, Video } from '../types/auth';
 import { EducationLevel } from '../types/course';
 import { emailService } from '../lib/emailService';
 import { mockCourses } from '../data/mockData';
+import { authService, User as ApiUser } from '../lib/authService';
 
 export interface Notification {
   id: string;
@@ -22,7 +23,7 @@ interface AuthContextType extends AuthState {
     email: string,
     password: string,
     name: string,
-    role: 'student' | 'instructor' | 'recruiter',
+    role: 'student' | 'teacher' | 'recruiter',
     studentCycle?: 'lyceen' | 'licence' | 'master' | 'doctorat',
     cv?: File | null
   ) => Promise<void>;
@@ -43,6 +44,23 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Fonction pour convertir l'utilisateur de l'API vers le format local
+const convertApiUserToLocalUser = (apiUser: ApiUser): User => {
+  return {
+    id: apiUser.id.toString(),
+    email: apiUser.email,
+    name: apiUser.name,
+    role: apiUser.role,
+    isPremium: false, // Par défaut, peut être mis à jour selon les données de l'API
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${apiUser.email}`,
+    joinedDate: apiUser.created_at,
+    educationLevel: 'lyceen', // Par défaut, peut être mis à jour selon les données de l'API
+    isVerified: !!apiUser.email_verified_at,
+    phone: '', // Par défaut, peut être mis à jour selon les données de l'API
+    bio: '', // Par défaut, peut être mis à jour selon les données de l'API
+  };
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -54,23 +72,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  // Load user from localStorage on mount
+  // Load user from API or localStorage on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('doremi_user');
+    const initializeAuth = async () => {
+      try {
+        // Vérifier si l'utilisateur est authentifié via l'API
+        if (authService.isAuthenticated()) {
+          // Valider le token avec l'API
+          const isValid = await authService.validateToken();
+          if (isValid) {
+            // Récupérer les informations utilisateur depuis l'API
+            const apiUser = await authService.getCurrentUser();
+            const localUser = convertApiUserToLocalUser(apiUser);
+            
+            setAuthState({
+              user: localUser,
+              isAuthenticated: true,
+              isLoading: false,
+            });
+          } else {
+            // Token invalide, nettoyer
+            await authService.logout();
+            setAuthState(prev => ({ ...prev, isLoading: false }));
+          }
+        } else {
+          // Fallback vers localStorage pour la compatibilité
+          const savedUser = localStorage.getItem('doremi_user');
+          if (savedUser) {
+            const user = JSON.parse(savedUser);
+            setAuthState({
+              user,
+              isAuthenticated: true,
+              isLoading: false,
+            });
+          } else {
+            setAuthState(prev => ({ ...prev, isLoading: false }));
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'initialisation de l\'authentification:', error);
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+      }
+    };
+
+    initializeAuth();
+
+    // Charger les données locales (videos, sessions, notifications)
     const savedVideos = localStorage.getItem('doremi_videos');
     const savedLiveSessions = localStorage.getItem('doremi_live_sessions');
     const savedNotifications = localStorage.getItem('doremi_notifications');
-    
-    if (savedUser) {
-      const user = JSON.parse(savedUser);
-      setAuthState({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } else {
-      setAuthState(prev => ({ ...prev, isLoading: false }));
-    }
 
     if (savedVideos) {
       const parsedVideos = JSON.parse(savedVideos);
@@ -100,49 +150,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [videos]);
 
   const login = async (email: string, password: string) => {
-    // Mock login - in real app, this would call an API
-    // Déterminer le rôle à partir de l'email pour les comptes de test
-    const emailLower = email.toLowerCase();
-    const isAdmin = emailLower.includes('admin');
-    const isInstructor = emailLower.includes('formateur') || emailLower.includes('instructor');
-    const isRecruiter = emailLower.includes('recruteur') || emailLower.includes('recruiter');
-    const mockUser: User = {
-      id: '1',
-      email,
-      name: isAdmin ? 'Admin DOREMI' : isInstructor ? 'Formateur DOREMI' : isRecruiter ? 'Recruteur DOREMI' : 'John Doe',
-      role: isAdmin ? 'admin' : isInstructor ? 'instructor' : isRecruiter ? 'recruiter' : 'student',
-      isPremium: false,
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
-      joinedDate: new Date().toISOString(),
-      educationLevel: 'lyceen',
-      isVerified: true,
-      phone: '',
-      bio: '',
-    };
-
-    localStorage.setItem('doremi_user', JSON.stringify(mockUser));
-    setAuthState({
-      user: mockUser,
-      isAuthenticated: true,
-      isLoading: false,
-    });
-    return mockUser;
+    console.log('🔐 Tentative de connexion avec l\'API:', email);
+    
+    try {
+      // Appel à l'API Laravel
+      const authResponse = await authService.login(email, password);
+      console.log('✅ Connexion API réussie:', authResponse);
+      
+      const localUser = convertApiUserToLocalUser(authResponse.user);
+      
+      // Stocker aussi dans localStorage pour la compatibilité
+      localStorage.setItem('doremi_user', JSON.stringify(localUser));
+      
+      setAuthState({
+        user: localUser,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      
+      return localUser;
+    } catch (error) {
+      console.error('❌ Erreur API de connexion:', error);
+      // Propager l'erreur - plus de fallback mock
+      throw error;
+    }
   };
 
-  const logout = () => {
-    // Nettoyer les objets URL avant la déconnexion
-    videos.forEach(video => {
-      if (video.fileUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(video.fileUrl);
-      }
-    });
-    
-    localStorage.removeItem('doremi_user');
-    setAuthState({
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-    });
+  const logout = async () => {
+    try {
+      // Nettoyer les objets URL avant la déconnexion
+      videos.forEach(video => {
+        if (video.fileUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(video.fileUrl);
+        }
+      });
+      
+      // Déconnexion via l'API
+      await authService.logout();
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    } finally {
+      // Nettoyer le localStorage dans tous les cas
+      localStorage.removeItem('doremi_user');
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    }
   };
 
   const updateProfile = (data: Partial<User>) => {
@@ -167,68 +222,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     password: string,
     name: string,
-    role: 'student' | 'instructor' | 'recruiter',
+    role: 'student' | 'teacher' | 'recruiter',
     studentCycle?: 'lyceen' | 'licence' | 'master' | 'doctorat',
     cv?: File | null
   ) => {
-    // Mock register - in real app, this would call an API
-    const isStudent = role === 'student';
-    const educationLevel: EducationLevel | undefined = isStudent
-      ? (studentCycle === 'lyceen' ? 'lyceen' : 'etudiant')
-      : undefined;
-
-    const mockUser: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      email,
-      name,
-      role,
-      isPremium: false,
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
-      joinedDate: new Date().toISOString(),
-      educationLevel,
-      studentCycle,
-      isVerified: false,
-      phone: '',
-      bio: '',
-    };
-
-    localStorage.setItem('doremi_user', JSON.stringify(mockUser));
-    setAuthState({
-      user: mockUser,
-      isAuthenticated: true,
-      isLoading: false,
-    });
-
-    // Ajouter l'utilisateur aux abonnés email
-    emailService.subscribe(email);
-
-    // Envoyer les notifications par email
+    console.log('📝 Tentative d\'inscription avec l\'API:', email, role);
+    
     try {
-      // Email de confirmation d'inscription
-      await emailService.sendRegistrationEmail(name, email, role);
-      
-      // Email de bienvenue
-      await emailService.sendWelcomeEmail(name, email, role);
-      
-      console.log('✅ Emails de bienvenue envoyés avec succès');
-    } catch (error) {
-      console.error('❌ Erreur lors de l\'envoi des emails:', error);
-    }
+      // Appel à l'API Laravel
+      const registerData = {
+        name,
+        surname: name, // Utiliser name comme surname
+        email,
+        password,
+        role,
+        student_cycle: studentCycle,
+        cv: cv || undefined,
+      };
 
-    // Initialiser les contenus/cours liés au cycle pour les étudiants
-    if (isStudent) {
+      const authResponse = await authService.register(registerData);
+      console.log('✅ Inscription API réussie:', authResponse);
+      
+      const localUser = convertApiUserToLocalUser(authResponse.user);
+      
+      // Stocker aussi dans localStorage pour la compatibilité
+      localStorage.setItem('doremi_user', JSON.stringify(localUser));
+      
+      setAuthState({
+        user: localUser,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
+      // Ajouter l'utilisateur aux abonnés email
+      emailService.subscribe(email);
+
+      // Envoyer les notifications par email
       try {
-        const enrolledKey = `doremi_enrolled_${mockUser.id}`;
-        const favoritesKey = `doremi_favorites_${mockUser.id}`;
-
-        const autoEnrollIds = mockCourses
-          .filter(c => (studentCycle === 'lyceen' ? c.educationLevel === 'lyceen' : c.educationLevel === 'etudiant'))
-          .map(c => c.id);
-        localStorage.setItem(enrolledKey, JSON.stringify(autoEnrollIds));
-        localStorage.setItem(favoritesKey, JSON.stringify([]));
-      } catch (e) {
-        console.warn('Erreur lors de l‘initialisation des cours par cycle:', e);
+        // Email de confirmation d'inscription
+        await emailService.sendRegistrationEmail(name, email, role);
+        
+        // Email de bienvenue
+        await emailService.sendWelcomeEmail(name, email, role);
+        
+        console.log('✅ Emails de bienvenue envoyés avec succès');
+      } catch (error) {
+        console.error('❌ Erreur lors de l\'envoi des emails:', error);
       }
+
+      // Initialiser les contenus/cours liés au cycle pour les étudiants
+      if (role === 'student') {
+        try {
+          const enrolledKey = `doremi_enrolled_${localUser.id}`;
+          const favoritesKey = `doremi_favorites_${localUser.id}`;
+
+          const autoEnrollIds = mockCourses
+            .filter(c => (studentCycle === 'lyceen' ? c.educationLevel === 'lyceen' : c.educationLevel === 'etudiant'))
+            .map(c => c.id);
+          localStorage.setItem(enrolledKey, JSON.stringify(autoEnrollIds));
+          localStorage.setItem(favoritesKey, JSON.stringify([]));
+        } catch (e) {
+          console.warn('Erreur lors de l\'initialisation des cours par cycle:', e);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erreur API d\'inscription:', error);
+      // Propager l'erreur - plus de fallback mock
+      throw error;
     }
   };
 

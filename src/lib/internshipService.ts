@@ -9,7 +9,7 @@ export interface InternshipApplication {
   userId: string;
   userName: string;
   userEmail: string;
-  userRole?: 'student' | 'instructor';
+  userRole?: 'student' | 'teacher';
   userPhone?: string;
   cvFileData: string; // Base64 string instead of File object
   cvFileName: string;
@@ -103,7 +103,7 @@ export class InternshipService {
     userId: string,
     userName: string,
     userEmail: string,
-    userRole: 'student' | 'instructor',
+    userRole: 'student' | 'teacher',
     userPhone: string,
     cvFile: File,
     coverLetter?: string

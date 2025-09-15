@@ -10,7 +10,7 @@ export const InstructorLiveSession: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'create' | 'list'>('create');
 
   // Rediriger si l'utilisateur n'est pas un formateur
-  if (!user || user.role !== 'instructor') {
+  if (!user || user.role !== 'teacher') {
     return <Navigate to="/dashboard" replace />;
   }
 

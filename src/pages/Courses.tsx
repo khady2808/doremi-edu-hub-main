@@ -170,7 +170,7 @@ export const Courses: React.FC = () => {
       </Card>
 
       {/* Instructor Actions */}
-      {user?.role === 'instructor' && (
+      {user?.role === 'teacher' && (
         <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -211,7 +211,7 @@ export const Courses: React.FC = () => {
       </div>
 
       {/* Instructor Content */}
-      {user?.role === 'instructor' && (
+      {user?.role === 'teacher' && (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Toutes les Vidéos des Instructeurs</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -240,7 +240,7 @@ export const Courses: React.FC = () => {
         </div>
       )}
 
-      {user?.role === 'instructor' && user.liveSessions && user.liveSessions.length > 0 && (
+      {user?.role === 'teacher' && user.liveSessions && user.liveSessions.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Mes Sessions Live</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -415,7 +415,7 @@ export const Courses: React.FC = () => {
       )}
 
       {/* Floating Action Button for Instructors */}
-      {user?.role === 'instructor' && (
+      {user?.role === 'teacher' && (
         <div className="fixed bottom-6 right-6 z-50">
           <div className="flex flex-col gap-2">
             <Button

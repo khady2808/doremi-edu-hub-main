@@ -399,7 +399,7 @@ export const TeacherRegistration: React.FC = () => {
       console.log('Candidature soumise:', teacherData);
       
       // En production, appeler l'API d'inscription
-      // await register(teacherData.personalInfo.email, password, fullName, 'instructor', teacherData.documents.cv);
+      // await register(teacherData.personalInfo.email, password, fullName, 'teacher', teacherData.documents.cv);
       
       alert('Candidature soumise avec succès ! Vous recevrez un email de confirmation.');
     } catch (error) {
