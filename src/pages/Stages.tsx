@@ -313,7 +313,7 @@ export const Stages: React.FC = () => {
         userId: user.id,
         userName: applicationForm.name,
         userEmail: applicationForm.email,
-        userRole: user.role === 'student' ? 'student' : 'instructor',
+        userRole: user.role === 'student' ? 'student' : 'teacher',
         userPhone: applicationForm.phone,
         userLocation: 'Non spécifié',
         educationLevel: user.educationLevel || 'Non spécifié',
@@ -333,7 +333,7 @@ export const Stages: React.FC = () => {
         user.id,
         applicationForm.name,
         applicationForm.email,
-        user.role === 'student' ? 'student' : 'instructor',
+        user.role === 'student' ? 'student' : 'teacher',
         applicationForm.phone,
         applicationForm.cvFile,
         applicationForm.coverLetter

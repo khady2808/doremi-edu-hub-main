@@ -18,13 +18,21 @@ import {
   GraduationCap,
   Video,
   Calendar,
-  Plus
+  Plus,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
-import { mockCourses } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 import { Progress } from '@/components/ui/progress';
 import { EDUCATION_CATEGORIES, EDUCATION_LEVEL_LABELS, EducationLevel } from '../types/course';
 import { Video as VideoType } from '../types/auth';
+import { useCourses, useCourseFavorites, useCourseEnrollment, usePopularCourses, useRecentCourses } from '../hooks/useCourses';
+import { CourseFilters } from '../lib/courseService';
+import { CourseCard } from '../components/CourseCard';
+import { CourseServiceTest } from '../components/CourseServiceTest';
+import LaravelApiTest from '../components/LaravelApiTest';
+import SimpleTest from '../components/SimpleTest';
+import DebugTest from '../components/DebugTest';
 
 export const Courses: React.FC = () => {
   const { user, videos } = useAuth();
@@ -32,8 +40,14 @@ export const Courses: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
-  const [enrolledIds, setEnrolledIds] = useState<string[]>([]);
-  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [showPopular, setShowPopular] = useState(false);
+  const [showRecent, setShowRecent] = useState(false);
+
+  // Hooks pour la gestion des cours
+  const { favoriteIds, toggleFavorite, isFavorite } = useCourseFavorites();
+  const { enrolledIds, enrollInCourse, isEnrolled } = useCourseEnrollment();
+  const { courses: popularCourses, loading: popularLoading } = usePopularCourses(6);
+  const { courses: recentCourses, loading: recentLoading } = useRecentCourses(6);
 
   // Mettre à jour l'URL quand la recherche change
   useEffect(() => {
@@ -52,34 +66,20 @@ export const Courses: React.FC = () => {
 
   const levels = ['all', 'beginner', 'intermediate', 'advanced'];
 
-  // Charger favoris/suivis
-  useEffect(() => {
-    if (!user) return;
-    const enrolledKey = `doremi_enrolled_${user.id}`;
-    const favoritesKey = `doremi_favorites_${user.id}`;
-    try {
-      const enrolled = JSON.parse(localStorage.getItem(enrolledKey) || '[]');
-      const favorites = JSON.parse(localStorage.getItem(favoritesKey) || '[]');
-      setEnrolledIds(enrolled);
-      setFavoriteIds(favorites);
-    } catch {}
-  }, [user?.id]);
+  // Préparer les filtres pour la requête
+  const courseFilters: CourseFilters = useMemo(() => {
+    const filters: CourseFilters = {
+      search: searchTerm || undefined,
+      category: selectedCategory !== 'all' ? selectedCategory : undefined,
+      level: selectedLevel !== 'all' ? selectedLevel as 'beginner' | 'intermediate' | 'advanced' : undefined,
+      educationLevel: user?.educationLevel,
+      limit: 50
+    };
+    return filters;
+  }, [searchTerm, selectedCategory, selectedLevel, user?.educationLevel]);
 
-  const filteredCourses = mockCourses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
-    const matchesLevel = selectedLevel === 'all' || course.level === selectedLevel;
-    
-    // Filter by education level if user has one set
-    const matchesEducationLevel = !user?.educationLevel || 
-                                 availableCategories.includes(course.category);
-
-    // Pour les étudiants: n'afficher que favoris/suivis
-    const matchesEnrollment = user?.role !== 'student' || enrolledIds.includes(course.id) || favoriteIds.includes(course.id);
-
-    return matchesSearch && matchesCategory && matchesLevel && matchesEducationLevel && matchesEnrollment;
-  });
+  // Récupérer les cours avec les filtres
+  const { courses, loading, error, refetch } = useCourses(courseFilters);
 
   const getLevelBadgeColor = (level: string) => {
     switch (level) {
@@ -108,6 +108,7 @@ export const Courses: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <DebugTest />
       <div className="flex flex-col gap-4">
         <h1 className="text-3xl font-bold">Catalogue de Cours</h1>
         <p className="text-muted-foreground">
@@ -170,7 +171,7 @@ export const Courses: React.FC = () => {
       </Card>
 
       {/* Instructor Actions */}
-      {user?.role === 'instructor' && (
+      {user?.role === 'teacher' && (
         <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -203,15 +204,93 @@ export const Courses: React.FC = () => {
         </Card>
       )}
 
-      {/* Results count */}
+      {/* Cours populaires et récents */}
+      {!searchTerm && selectedCategory === 'all' && selectedLevel === 'all' && (
+        <div className="space-y-6">
+          {/* Cours populaires */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Cours Populaires</h2>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowPopular(!showPopular)}
+              >
+                {showPopular ? 'Masquer' : 'Voir tout'}
+              </Button>
+            </div>
+            {popularLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {popularCourses.slice(0, showPopular ? popularCourses.length : 3).map((course) => (
+                  <CourseCard 
+                    key={course.id} 
+                    course={course} 
+                    isFavorite={isFavorite(course.id)}
+                    isEnrolled={isEnrolled(course.id)}
+                    onToggleFavorite={() => toggleFavorite(course.id)}
+                    onEnroll={() => enrollInCourse(course.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Cours récents */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Cours Récents</h2>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowRecent(!showRecent)}
+              >
+                {showRecent ? 'Masquer' : 'Voir tout'}
+              </Button>
+            </div>
+            {recentLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {recentCourses.slice(0, showRecent ? recentCourses.length : 3).map((course) => (
+                  <CourseCard 
+                    key={course.id} 
+                    course={course} 
+                    isFavorite={isFavorite(course.id)}
+                    isEnrolled={isEnrolled(course.id)}
+                    onToggleFavorite={() => toggleFavorite(course.id)}
+                    onEnroll={() => enrollInCourse(course.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Results count and error handling */}
       <div className="flex justify-between items-center">
         <p className="text-muted-foreground">
-          {filteredCourses.length} cours trouvé{filteredCourses.length > 1 ? 's' : ''}
+          {loading ? 'Chargement...' : `${courses.length} cours trouvé${courses.length > 1 ? 's' : ''}`}
         </p>
+        {error && (
+          <div className="flex items-center gap-2 text-red-600">
+            <AlertCircle className="w-4 h-4" />
+            <span className="text-sm">Erreur de chargement</span>
+            <Button variant="outline" size="sm" onClick={refetch}>
+              Réessayer
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Instructor Content */}
-      {user?.role === 'instructor' && (
+      {user?.role === 'teacher' && (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Toutes les Vidéos des Instructeurs</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -240,7 +319,7 @@ export const Courses: React.FC = () => {
         </div>
       )}
 
-      {user?.role === 'instructor' && user.liveSessions && user.liveSessions.length > 0 && (
+      {user?.role === 'teacher' && user.liveSessions && user.liveSessions.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Mes Sessions Live</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -270,141 +349,29 @@ export const Courses: React.FC = () => {
       )}
 
       {/* Courses Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCourses.map((course) => (
-          <Card key={course.id} className="card-hover group overflow-hidden">
-            <div className="relative">
-              <img 
-                src={course.thumbnail} 
-                alt={course.title}
-                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                onError={handleImageError}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              {course.isPremium && (
-                <div className="absolute top-3 right-3">
-                  <Badge className="premium-badge bg-yellow-500 text-white border-0 shadow-lg">
-                    <Crown className="w-3 h-3 mr-1" />
-                    Premium
-                  </Badge>
-                </div>
-              )}
-              {course.progress !== undefined && course.progress > 0 && (
-                <div className="absolute bottom-3 left-3 right-3">
-                  <div className="bg-black/50 backdrop-blur-sm rounded-lg p-2">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-white text-xs font-medium">Progression</span>
-                      <span className="text-white text-xs font-medium">{course.progress}%</span>
-                    </div>
-                    <Progress value={course.progress} className="h-1" />
-                  </div>
-                </div>
-              )}
-              {/* Badge de niveau */}
-              <div className="absolute top-3 left-3">
-                <Badge className={`${getLevelBadgeColor(course.level)} shadow-lg`}>
-                  {getLevelText(course.level)}
-                </Badge>
-              </div>
-            </div>
-            
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start gap-2">
-                <CardTitle className="text-lg line-clamp-2 group-hover:text-blue-600 transition-colors">{course.title}</CardTitle>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                  <span className="text-sm font-medium">{course.rating}</span>
-                </div>
-              </div>
-              <CardDescription className="line-clamp-2">
-                {course.description}
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground font-medium">{course.category}</span>
-                  <div className="flex items-center gap-1">
-                    <Users className="w-3 h-3 text-gray-400" />
-                    <span className="text-xs text-muted-foreground">{course.studentsCount}</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {course.duration}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <BookOpen className="w-4 h-4" />
-                    {course.chaptersCount} chapitres
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    {course.studentsCount}
-                  </div>
-                </div>
-                
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Par {course.instructor}</span>
-                    {course.isPremium && course.price && (
-                      <span className="font-semibold text-primary">{course.price}€</span>
-                    )}
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button 
-                      className="flex-1" 
-                      size="sm"
-                      onClick={() => {
-                        // Simulation de démarrage du cours
-                        alert(`Démarrage du cours : ${course.title}`);
-                        // Ici on pourrait naviguer vers la page du cours ou ouvrir un modal
-                      }}
-                    >
-                      <PlayCircle className="w-4 h-4 mr-2" />
-                      {course.progress && course.progress > 0 ? 'Continuer' : 'Commencer'}
-                    </Button>
-                    {user?.role === 'student' && (
-                      <Button
-                        variant={favoriteIds.includes(course.id) ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => {
-                          const key = `doremi_favorites_${user.id}`;
-                          let next = favoriteIds.includes(course.id)
-                            ? favoriteIds.filter(id => id !== course.id)
-                            : [...favoriteIds, course.id];
-                          setFavoriteIds(next);
-                          localStorage.setItem(key, JSON.stringify(next));
-                        }}
-                      >
-                        <Star className="w-4 h-4 mr-1" />
-                        {favoriteIds.includes(course.id) ? 'Retirer Favori' : 'Favori'}
-                      </Button>
-                    )}
-                    {user?.isPremium && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          // Simulation de téléchargement
-                          alert(`Téléchargement du cours : ${course.title}`);
-                        }}
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-6 h-6 animate-spin" />
+            <span>Chargement des cours...</span>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {courses.map((course) => (
+            <CourseCard 
+              key={course.id} 
+              course={course} 
+              isFavorite={isFavorite(course.id)}
+              isEnrolled={isEnrolled(course.id)}
+              onToggleFavorite={() => toggleFavorite(course.id)}
+              onEnroll={() => enrollInCourse(course.id)}
+            />
+          ))}
+        </div>
+      )}
 
-      {filteredCourses.length === 0 && (
+      {!loading && courses.length === 0 && (
         <div className="text-center py-12">
           <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Aucun cours trouvé</h3>
@@ -414,8 +381,15 @@ export const Courses: React.FC = () => {
         </div>
       )}
 
+      {/* Composant de Test - À retirer en production */}
+      <div className="mt-8 space-y-6">
+        <SimpleTest />
+        <CourseServiceTest />
+        <LaravelApiTest />
+      </div>
+
       {/* Floating Action Button for Instructors */}
-      {user?.role === 'instructor' && (
+      {user?.role === 'teacher' && (
         <div className="fixed bottom-6 right-6 z-50">
           <div className="flex flex-col gap-2">
             <Button
