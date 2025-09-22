@@ -41,6 +41,7 @@ interface TeacherData {
 
 export const TeacherRegistration: React.FC = () => {
   const [step, setStep] = useState(1);
+  const [newSpec, setNewSpec] = useState('');
   const [teacherData, setTeacherData] = useState<TeacherData>({
     personalInfo: {
       firstName: '',
@@ -314,7 +315,6 @@ export const TeacherRegistration: React.FC = () => {
   );
 
   const renderStep3 = () => {
-    const [newSpec, setNewSpec] = useState('');
 
     return (
       <div className="space-y-6">
@@ -399,7 +399,7 @@ export const TeacherRegistration: React.FC = () => {
       console.log('Candidature soumise:', teacherData);
       
       // En production, appeler l'API d'inscription
-      // await register(teacherData.personalInfo.email, password, fullName, 'instructor', teacherData.documents.cv);
+      // await register(teacherData.personalInfo.email, password, fullName, 'teacher', teacherData.documents.cv);
       
       alert('Candidature soumise avec succès ! Vous recevrez un email de confirmation.');
     } catch (error) {

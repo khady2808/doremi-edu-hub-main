@@ -24,8 +24,8 @@ export const LoginForm: React.FC = () => {
     email: '',
     password: '',
     name: '',
-    role: 'student' as 'student' | 'instructor' | 'recruiter',
-    studentCycle: '' as '' | 'lyceen' | 'licence' | 'master' | 'doctorat',
+    role: 'student' as 'student' | 'teacher' | 'recruiter',
+    studentCycle: undefined as 'lyceen' | 'licence' | 'master' | 'doctorat' | undefined,
     cv: null as File | null
   });
   const [cvError, setCvError] = useState<string | null>(null);
@@ -46,7 +46,7 @@ export const LoginForm: React.FC = () => {
         case 'admin':
           window.location.href = '/admin';
           break;
-        case 'instructor':
+        case 'teacher':
           window.location.href = '/';
           break;
         case 'recruiter':
@@ -56,9 +56,10 @@ export const LoginForm: React.FC = () => {
           window.location.href = '/';
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue";
       toast({
         title: "Erreur de connexion",
-        description: "Vérifiez vos identifiants",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -71,7 +72,7 @@ export const LoginForm: React.FC = () => {
     setIsLoading(true);
     
     // Validation pour les formateurs
-    if (registerData.role === 'instructor' && !registerData.cv) {
+    if (registerData.role === 'teacher' && !registerData.cv) {
       setCvError('Le CV est obligatoire pour les formateurs');
       setIsLoading(false);
       return;
@@ -90,7 +91,7 @@ export const LoginForm: React.FC = () => {
         registerData.password,
         registerData.name,
         registerData.role,
-        registerData.role === 'student' ? registerData.studentCycle : undefined,
+        registerData.role === 'student' && registerData.studentCycle ? registerData.studentCycle : undefined,
         registerData.cv
       );
       toast({
@@ -98,9 +99,10 @@ export const LoginForm: React.FC = () => {
         description: "Votre compte a été créé avec succès"
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue";
       toast({
         title: "Erreur d'inscription",
-        description: (error as Error).message || "Une erreur est survenue",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -184,11 +186,12 @@ export const LoginForm: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    <p>Comptes de test :</p>
+                    <p>Comptes de test (API Laravel) :</p>
                     <p>• Étudiant : etudiant@doremi.fr</p>
                     <p>• Formateur : formateur@doremi.fr</p>
                     <p>• Admin : admin@doremi.fr</p>
                     <p>• Recruteur : recruteur@doremi.fr</p>
+                    <p className="text-xs text-green-600 mt-1">Mot de passe : password123</p>
                   </div>
                 </CardContent>
                 <CardFooter>
@@ -255,8 +258,8 @@ export const LoginForm: React.FC = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="role">Rôle</Label>
-                    <Select value={registerData.role} onValueChange={(value: 'student' | 'instructor' | 'recruiter') => {
-                      setRegisterData({...registerData, role: value, cv: null, studentCycle: ''});
+                    <Select value={registerData.role} onValueChange={(value: 'student' | 'teacher' | 'recruiter') => {
+                      setRegisterData({...registerData, role: value, cv: null, studentCycle: undefined});
                       setCvError(null);
                       setCycleError(null);
                     }}>
@@ -265,7 +268,7 @@ export const LoginForm: React.FC = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="student">Étudiant</SelectItem>
-                        <SelectItem value="instructor">Formateur</SelectItem>
+                        <SelectItem value="teacher">Formateur</SelectItem>
                         <SelectItem value="recruiter">Recruteur</SelectItem>
                       </SelectContent>
                     </Select>
@@ -276,7 +279,7 @@ export const LoginForm: React.FC = () => {
                     <div className="space-y-2">
                       <Label htmlFor="cycle">Cycle / Niveau d’étude *</Label>
                       <Select
-                        value={registerData.studentCycle || ''}
+                        value={registerData.studentCycle || undefined}
                         onValueChange={(value: 'lyceen' | 'licence' | 'master' | 'doctorat') => {
                           setRegisterData({ ...registerData, studentCycle: value });
                           setCycleError(null);
@@ -302,7 +305,7 @@ export const LoginForm: React.FC = () => {
                   )}
 
                   {/* Upload CV pour les formateurs */}
-                  {registerData.role === 'instructor' && (
+                  {registerData.role === 'teacher' && (
                     <div className="space-y-2">
                       <Label htmlFor="cv" className="flex items-center gap-2">
                         <FileText className="w-4 h-4" />

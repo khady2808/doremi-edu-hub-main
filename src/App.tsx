@@ -22,12 +22,16 @@ import { VideoCall } from "./pages/VideoCall";
 import { InstructorVideoUpload } from "./pages/InstructorVideoUpload";
 import { InstructorLiveSession } from "./pages/InstructorLiveSession";
 import { Actualites } from "./pages/Actualites";
+import { NewsDetail } from "./pages/NewsDetail";
 import { Stages } from "./pages/Stages";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { AdminStats } from "./pages/AdminStats";
 import { AdminCourses } from "./pages/AdminCourses";
 import { AdminUsers } from "./pages/AdminUsers";
 import { AdminNews } from "./pages/AdminNews";
+import { AdminNewsDetail } from "./pages/AdminNewsDetail";
+import { AdminNewsAdd } from "./pages/AdminNewsAdd";
+import { AdminNewsEdit } from "./pages/AdminNewsEdit";
 import { AdminInternships } from "./pages/AdminInternships";
 import { AdminSettings } from "./pages/AdminSettings";
 import { AdminDocuments } from "./pages/AdminDocuments";
@@ -36,6 +40,8 @@ import RecruiterOffers from "./pages/RecruiterOffers";
 import RecruiterApplications from "./pages/RecruiterApplications";
 import NotFound from "./pages/NotFound";
 import Footer from "./components/layout/Footer";
+import { ApiTest } from "./components/ApiTest";
+import TestPage from "./pages/TestPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +78,7 @@ const AppContent = () => {
         <div className="flex-1">
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/test" element={<TestPage />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/video-call" element={<VideoCall />} />
@@ -84,6 +91,9 @@ const AppContent = () => {
             <Route path="/recruiter/offers" element={<RecruiterOffers />} />
             <Route path="/recruiter/applications" element={<RecruiterApplications />} />
             <Route path="/news" element={<Actualites />} />
+            <Route path="/news/:id" element={<NewsDetail />} />
+            <Route path="/actualites" element={<Actualites />} />
+            <Route path="/actualites/:id" element={<NewsDetail />} />
             <Route path="/students" element={<div className="text-center py-12"><h2 className="text-2xl font-bold mb-4">Mes Étudiants</h2><p className="text-muted-foreground">En cours de développement...</p></div>} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/stats" element={<AdminStats />} />
@@ -96,6 +106,7 @@ const AppContent = () => {
             <Route path="/instructor-videos" element={<InstructorVideoUpload />} />
             <Route path="/instructor/video-upload" element={<InstructorVideoUpload />} />
             <Route path="/instructor/live-session" element={<InstructorLiveSession />} />
+            <Route path="/api-test" element={<ApiTest />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
@@ -127,18 +138,25 @@ const AppContent = () => {
                 <Route path="/recruiter/offers" element={<RecruiterOffers />} />
                 <Route path="/recruiter/applications" element={<RecruiterApplications />} />
                 <Route path="/news" element={<Actualites />} />
+                <Route path="/news/:id" element={<NewsDetail />} />
+                <Route path="/actualites" element={<Actualites />} />
+                <Route path="/actualites/:id" element={<NewsDetail />} />
                 <Route path="/students" element={<div className="text-center py-12"><h2 className="text-2xl font-bold mb-4">Mes Étudiants</h2><p className="text-muted-foreground">En cours de développement...</p></div>} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/stats" element={<AdminStats />} />
                 <Route path="/admin/courses" element={<AdminCourses />} />
                 <Route path="/admin/users" element={<AdminUsers />} />
                 <Route path="/admin/news" element={<AdminNews />} />
+                <Route path="/admin/news/add" element={<AdminNewsAdd />} />
+                <Route path="/admin/news/detail/:id" element={<AdminNewsDetail />} />
+                <Route path="/admin/news/edit/:id" element={<AdminNewsEdit />} />
                 <Route path="/admin/internships" element={<AdminInternships />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="/admin/documents" element={<AdminDocuments />} />
                 <Route path="/instructor-videos" element={<InstructorVideoUpload />} />
                 <Route path="/instructor/video-upload" element={<InstructorVideoUpload />} />
                 <Route path="/instructor/live-session" element={<InstructorLiveSession />} />
+                <Route path="/api-test" element={<ApiTest />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
@@ -165,7 +183,12 @@ const SidebarPaddingWrapper: React.FC<{ children: React.ReactNode }> = ({ childr
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <AuthProvider>
         <AppContent />
         <Toaster />

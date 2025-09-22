@@ -64,7 +64,7 @@ interface User {
   name: string;
   email: string;
   avatar: string;
-  role: 'student' | 'instructor' | 'admin';
+      role: 'student' | 'teacher' | 'admin' | 'recruiter';
   status: 'active' | 'inactive' | 'pending';
   joinDate: string;
   lastLogin: string;
@@ -304,7 +304,7 @@ export const AdminUsers: React.FC = () => {
       name: 'Dr. Amadou Diallo',
       email: 'amadou.diallo@doremi.fr',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=amadou',
-      role: 'instructor',
+      role: 'teacher',
       status: 'active',
       joinDate: '2023-12-01',
       lastLogin: '2024-01-20T16:45:00Z',
@@ -385,7 +385,7 @@ export const AdminUsers: React.FC = () => {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin': return 'text-purple-600 bg-purple-50';
-      case 'instructor': return 'text-blue-600 bg-blue-50';
+      case 'teacher': return 'text-blue-600 bg-blue-50';
       case 'student': return 'text-green-600 bg-green-50';
       default: return 'text-gray-600 bg-gray-50';
     }
@@ -417,7 +417,7 @@ export const AdminUsers: React.FC = () => {
   const totalUsers = users.length;
   const activeUsers = users.filter(user => user.status === 'active').length;
   const premiumUsers = users.filter(user => user.subscription.type === 'premium' || user.subscription.type === 'enterprise').length;
-  const instructors = users.filter(user => user.role === 'instructor').length;
+  const instructors = users.filter(user => user.role === 'teacher').length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -537,7 +537,7 @@ export const AdminUsers: React.FC = () => {
               <SelectContent>
                 <SelectItem value="all">Tous les rôles</SelectItem>
                 <SelectItem value="student">Étudiants</SelectItem>
-                <SelectItem value="instructor">Instructeurs</SelectItem>
+                <SelectItem value="teacher">Formateurs</SelectItem>
                 <SelectItem value="admin">Administrateurs</SelectItem>
               </SelectContent>
             </Select>
@@ -574,7 +574,7 @@ export const AdminUsers: React.FC = () => {
                       <span className="text-sm text-gray-600">Rôle:</span>
                       <Badge className={getRoleColor(user.role)}>
                         {user.role === 'student' ? 'Étudiant' : 
-                         user.role === 'instructor' ? 'Instructeur' : 'Administrateur'}
+                         user.role === 'teacher' ? 'Formateur' : 'Administrateur'}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
@@ -655,7 +655,7 @@ export const AdminUsers: React.FC = () => {
                             <div className="flex items-center gap-2 mt-2">
                               <Badge className={getRoleColor(selectedUser.role)}>
                                 {selectedUser.role === 'student' ? 'Étudiant' : 
-                                 selectedUser.role === 'instructor' ? 'Instructeur' : 'Administrateur'}
+                                 selectedUser.role === 'teacher' ? 'Formateur' : 'Administrateur'}
                               </Badge>
                               <Badge className={getStatusColor(selectedUser.status)}>
                                 {selectedUser.status === 'active' ? 'Actif' : 

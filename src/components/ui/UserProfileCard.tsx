@@ -24,7 +24,7 @@ interface UserProfileCardProps {
 
 export const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, className = '' }) => {
   const getRoleText = (role: string) => {
-    return role === 'instructor' ? 'Formateur' : 'Étudiant';
+    return role === 'teacher' ? 'Formateur' : 'Étudiant';
   };
 
   const getEducationLevelText = (level?: string) => {
@@ -71,8 +71,8 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, classNam
             <h3 className="text-xl font-semibold text-gray-900 mb-1">{user.name}</h3>
             <div className="flex items-center gap-2 mb-2">
               <Badge 
-                variant={user.role === 'instructor' ? 'default' : 'secondary'}
-                className={user.role === 'instructor' ? 'bg-purple-500' : 'bg-blue-500'}
+                variant={user.role === 'teacher' ? 'default' : 'secondary'}
+                                  className={user.role === 'teacher' ? 'bg-purple-500' : 'bg-blue-500'}
               >
                 {getRoleText(user.role)}
               </Badge>
@@ -142,7 +142,7 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, classNam
               </div>
             )}
 
-            {user.role === 'instructor' && (
+            {user.role === 'teacher' && (
               <div className="flex items-center gap-3">
                 <Video className="w-4 h-4 text-gray-500" />
                 <div>
@@ -155,7 +155,7 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, classNam
         </div>
 
         {/* Statistiques rapides */}
-        {user.role === 'instructor' && (
+        {user.role === 'teacher' && (
           <div className="bg-white rounded-lg p-4 border border-gray-200">
             <h4 className="font-semibold text-gray-800 mb-3">Statistiques</h4>
             <div className="grid grid-cols-3 gap-4">

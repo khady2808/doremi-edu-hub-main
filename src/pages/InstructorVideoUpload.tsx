@@ -21,7 +21,7 @@ export const InstructorVideoUpload: React.FC = () => {
         id: 'instructor_1',
         email: 'formateur@doremi.fr',
         name: 'Professeur Martin',
-        role: 'instructor' as const,
+        role: 'teacher' as const,
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
         phone: '+33 6 12 34 56 78',
         location: 'Paris, France',
@@ -62,7 +62,7 @@ export const InstructorVideoUpload: React.FC = () => {
   }
 
   // Rediriger si l'utilisateur n'est pas un formateur
-  if (user.role !== 'instructor') {
+      if (user.role !== 'teacher') {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto text-center">

@@ -227,7 +227,7 @@ export const Chatbot: React.FC = () => {
     }
 
     // Réponses contextuelles selon le rôle de l'utilisateur
-    if (user?.role === 'instructor') {
+    if (user?.role === 'teacher') {
       if (lowerText.includes('cours') || lowerText.includes('enseigner')) {
         return 'En tant que formateur, vous pouvez créer des cours interactifs, organiser des sessions live et suivre les progrès de vos étudiants. Voulez-vous que je vous guide ?';
       }
