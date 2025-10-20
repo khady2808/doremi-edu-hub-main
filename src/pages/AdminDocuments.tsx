@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useQuery } from '@tanstack/react-query';
+import { documentsService } from '@/lib/documentsService';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   FileText,
   Upload,
@@ -75,10 +78,12 @@ export const AdminDocuments: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const queryClient = useQueryClient();
 
   // Données simulées pour les documents
-  const [documents] = useState<Document[]>([
+  const mockDocuments: Document[] = [
     {
       id: '1',
       title: 'Guide Complet React.js',
@@ -184,22 +189,63 @@ export const AdminDocuments: React.FC = () => {
       fileUrl: '/audio/business-english.mp3',
       status: 'active'
     }
-  ]);
+  ];
 
-  const [stats] = useState<DocumentStats>({
-    totalDocuments: 156,
-    totalDownloads: 15420,
-    totalViews: 45678,
-    totalSize: 2.4, // GB
-    popularCategories: [
-      { category: 'Développement Web', count: 45 },
-      { category: 'Mathématiques', count: 32 },
-      { category: 'Langues', count: 28 },
-      { category: 'Histoire', count: 25 },
-      { category: 'Sciences', count: 26 }
-    ],
-    recentUploads: documents.slice(0, 3)
+  // Appels API: liste et recherche
+  const listQuery = useQuery({
+    queryKey: ['documents', 'list'],
+    queryFn: () => documentsService.list(),
+    enabled: searchTerm.trim().length === 0,
   });
+
+  const searchQuery = useQuery({
+    queryKey: ['documents', 'search', searchTerm],
+    queryFn: () => documentsService.search(searchTerm.trim()),
+    enabled: searchTerm.trim().length > 0,
+  });
+
+  const apiDocuments = (searchTerm.trim().length > 0 ? searchQuery.data : listQuery.data) as any[] | undefined;
+
+  const mappedApiDocuments: Document[] | undefined = useMemo(() => {
+    if (!apiDocuments) return undefined;
+    return apiDocuments.map((d: any) => ({
+      id: String(d.id ?? d.uuid ?? d._id ?? Math.random().toString(36).slice(2)),
+      title: d.title ?? d.name ?? 'Document',
+      description: d.description ?? '',
+      type: (d.type ?? 'pdf') as Document['type'],
+      category: d.category ?? 'Général',
+      subject: d.subject ?? '',
+      level: d.level ?? '',
+      author: d.author ?? '—',
+      uploadDate: d.uploadDate ?? d.created_at ?? d.createdAt ?? new Date().toISOString(),
+      fileSize: Number(d.fileSize ?? 0),
+      downloads: Number(d.downloads ?? 0),
+      views: Number(d.views ?? 0),
+      rating: Number(d.rating ?? 0),
+      isPublic: Boolean(d.isPublic ?? true),
+      isPremium: Boolean(d.isPremium ?? false),
+      tags: Array.isArray(d.tags) ? d.tags : [],
+      thumbnail: d.thumbnail ?? undefined,
+      fileUrl: d.fileUrl ?? d.url ?? '#',
+      status: (d.status ?? 'active') as Document['status'],
+    }));
+  }, [apiDocuments]);
+
+  const documents: Document[] = mappedApiDocuments ?? mockDocuments;
+
+  const stats: DocumentStats = useMemo(() => ({
+    totalDocuments: documents.length,
+    totalDownloads: documents.reduce((sum, d) => sum + (d.downloads || 0), 0),
+    totalViews: documents.reduce((sum, d) => sum + (d.views || 0), 0),
+    totalSize: Number((documents.reduce((sum, d) => sum + (d.fileSize || 0), 0) / 1024).toFixed(1)), // GB approx if MB input
+    popularCategories: Object.entries(
+      documents.reduce((acc: Record<string, number>, d) => {
+        acc[d.category] = (acc[d.category] || 0) + 1;
+        return acc;
+      }, {})
+    ).map(([category, count]) => ({ category, count })).slice(0, 5),
+    recentUploads: documents.slice(0, 3),
+  }), [documents]);
 
   const categories = ['Tous', 'Développement Web', 'Programmation', 'Mathématiques', 'Histoire', 'Langues', 'Sciences'];
   const types = ['Tous', 'pdf', 'video', 'audio', 'presentation', 'image', 'spreadsheet', 'archive'];
@@ -273,7 +319,7 @@ export const AdminDocuments: React.FC = () => {
                 <FileText className="w-4 h-4 mr-1" />
                 {stats.totalDocuments} Documents
               </Badge>
-              <Button>
+              <Button onClick={() => setIsCreateOpen(true)}>
                 <Upload className="w-4 h-4 mr-2" />
                 Ajouter un Document
               </Button>
@@ -685,11 +731,95 @@ export const AdminDocuments: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal de création */}
+      <CreateDocumentDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['documents', 'list'] });
+          if (searchTerm.trim().length > 0) {
+            queryClient.invalidateQueries({ queryKey: ['documents', 'search', searchTerm] });
+          }
+        }}
+      />
     </div>
   );
 };
 
 export default AdminDocuments;
+
+// Dialog de création simplifié
+const CreateDocumentDialog: React.FC<{
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onCreated: () => void;
+}> = ({ open, onOpenChange, onCreated }) => {
+  const queryClient = useQueryClient();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [type, setType] = useState<'pdf' | 'video' | 'image' | 'audio' | 'presentation' | 'spreadsheet' | 'archive'>('pdf');
+  const [category, setCategory] = useState('Général');
+
+  const createMutation = useMutation({
+    mutationFn: (payload: Record<string, unknown>) => documentsService.create(payload),
+    onSuccess: () => {
+      onOpenChange(false);
+      setTitle('');
+      setDescription('');
+      setType('pdf');
+      setCategory('Général');
+      queryClient.invalidateQueries({ queryKey: ['documents', 'list'] });
+      onCreated();
+    },
+  });
+
+  const canSubmit = title.trim().length > 0;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Ajouter un Document</DialogTitle>
+          <DialogDescription>Renseignez les informations principales du document.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700">Titre</label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titre du document" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Description</label>
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Courte description" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Type</label>
+              <Select value={type} onValueChange={(v) => setType(v as any)}>
+                <SelectTrigger className="w-full"><SelectValue placeholder="Type" /></SelectTrigger>
+                <SelectContent>
+                  {['pdf','video','image','audio','presentation','spreadsheet','archive'].map(t => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Catégorie</label>
+              <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: Général" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
+            <Button onClick={() => createMutation.mutate({ title, description, type, category })} disabled={!canSubmit || createMutation.isPending}>
+              {createMutation.isPending ? 'Ajout...' : 'Ajouter'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 
 
