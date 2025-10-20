@@ -41,6 +41,7 @@ import RecruiterApplications from "./pages/RecruiterApplications";
 import NotFound from "./pages/NotFound";
 import Footer from "./components/layout/Footer";
 import { ApiTest } from "./components/ApiTest";
+import TestPage from "./pages/TestPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,6 +78,7 @@ const AppContent = () => {
         <div className="flex-1">
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/test" element={<TestPage />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/video-call" element={<VideoCall />} />
