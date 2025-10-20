@@ -12,10 +12,10 @@ import { apiInternshipService, Internship, CreateInternshipData } from '@/lib/ap
 
 ### 2. Configuration de l'URL de base
 
-Par défaut, le service utilise `http://localhost:8000/api`. Pour changer l'URL :
+Par défaut, le service utiliser `http://localhost:8000/api`. Pour changer l'URL :
 
 ```typescript
-import { ApiInternshipService } from '@/lib/apiInternshipService';
+import  { ApiInternshipService } from '@/lib/apiInternshipService';
 
 const customService = new ApiInternshipService('https://votre-api.com/api');
 ```
