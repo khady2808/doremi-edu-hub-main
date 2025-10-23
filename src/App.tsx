@@ -42,6 +42,8 @@ import NotFound from "./pages/NotFound";
 import Footer from "./components/layout/Footer";
 import { ApiTest } from "./components/ApiTest";
 import TestPage from "./pages/TestPage";
+import InternshipTestPage from "./pages/InternshipTestPage";
+import InternshipDemoPage from "./pages/InternshipDemoPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -107,6 +109,8 @@ const AppContent = () => {
             <Route path="/instructor/video-upload" element={<InstructorVideoUpload />} />
             <Route path="/instructor/live-session" element={<InstructorLiveSession />} />
             <Route path="/api-test" element={<ApiTest />} />
+            <Route path="/internship-api-test" element={<InternshipTestPage />} />
+            <Route path="/internship-demo" element={<InternshipDemoPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
@@ -157,6 +161,8 @@ const AppContent = () => {
                 <Route path="/instructor/video-upload" element={<InstructorVideoUpload />} />
                 <Route path="/instructor/live-session" element={<InstructorLiveSession />} />
                 <Route path="/api-test" element={<ApiTest />} />
+                <Route path="/internship-api-test" element={<InternshipTestPage />} />
+                <Route path="/internship-demo" element={<InternshipDemoPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

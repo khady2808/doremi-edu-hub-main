@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { internshipService } from '@/lib/internshipService';
+import { internshipApiService, type Internship as ApiInternship } from '@/services/internshipApi';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -97,53 +98,133 @@ export const Stages: React.FC = () => {
     }
   }, [searchTerm, setSearchParams]);
 
-  // Charger les offres depuis le service
+  // Charger les offres depuis l'API et le service local
   useEffect(() => {
-    const loadOffers = () => {
+    const loadOffers = async () => {
+      setLoading(true);
       try {
-        const allOffers = offersService.getAll();
-        console.log('📦 Toutes les offres chargées depuis offersService:', allOffers);
+        // Charger depuis l'API des stages
+        console.log('📦 Chargement des stages depuis l\'API...');
+        const apiOffers = await internshipApiService.getAllInternships();
+        console.log('📋 Stages chargés depuis l\'API:', apiOffers);
         
-        // Filtrer seulement les offres publiées
-        const publishedOffers = allOffers.filter(offer => offer.status === 'published');
-        console.log('📋 Offres publiées:', publishedOffers);
-        
-        // Transformer les offres RecruiterOffer pour correspondre à l'interface InternshipOffer
-        const transformedOffers: InternshipOffer[] = publishedOffers.map((offer: any) => ({
+        // Transformer les offres de l'API pour correspondre à l'interface InternshipOffer
+        const apiTransformedOffers: InternshipOffer[] = apiOffers.map((offer: ApiInternship) => ({
           id: offer.id,
+          title: offer.title,
+          company: offer.company,
+          location: offer.location,
+          duration: offer.duration,
+          description: offer.description,
+          requirements: offer.requirements,
+          applicationDeadline: offer.applicationDeadline,
+          salary: offer.salary,
+          type: offer.type,
+          remote: offer.remote,
+          isPremium: false,
+          views: offer.views || 0,
+          applications: offer.applications || 0,
+          rating: offer.rating || 4.0,
+          logo: offer.logo,
+          image: offer.image,
+          tags: offer.tags || [],
+          recruiterId: 'api',
+          recruiterName: offer.company,
+          createdAt: offer.createdAt,
+          status: offer.status
+        }));
+
+        // Charger depuis le service local (offres des recruteurs)
+        console.log('📦 Chargement des offres depuis le service local...');
+        const allLocalOffers = offersService.getAll();
+        const publishedLocalOffers = allLocalOffers.filter(offer => offer.status === 'published');
+        
+        // Transformer les offres locales
+        const localTransformedOffers: InternshipOffer[] = publishedLocalOffers.map((offer: any) => ({
+          id: `local_${offer.id}`,
           title: offer.title,
           company: offer.recruiterName || 'Entreprise non spécifiée',
           location: offer.location || 'Localisation non spécifiée',
           duration: offer.contractType || 'Non spécifié',
           description: offer.description,
-          requirements: [], // Les recruteurs n'ont pas de champ requirements
-          applicationDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Expire dans 30 jours
-          salary: undefined, // Les recruteurs n'ont pas de champ salary
-          type: 'stage', // Par défaut
-          remote: false, // Par défaut
-          isPremium: false, // Par défaut
-          views: 0, // Par défaut
-          applications: 0, // Par défaut
-          rating: 4.0, // Par défaut
+          requirements: [],
+          applicationDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          salary: undefined,
+          type: 'stage',
+          remote: false,
+          isPremium: false,
+          views: 0,
+          applications: 0,
+          rating: 4.0,
           logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop',
-          tags: [], // Par défaut
+          tags: [],
           recruiterId: offer.recruiterId,
           recruiterName: offer.recruiterName,
           createdAt: offer.publishedAt,
           status: 'active'
         }));
+
+        // Combiner les offres de l'API et du service local
+        const allOffers = [...apiTransformedOffers, ...localTransformedOffers];
+        console.log('🔄 Toutes les offres combinées:', allOffers);
         
-        console.log('🔄 Offres transformées pour affichage:', transformedOffers);
-        setOffers(transformedOffers);
+        setOffers(allOffers);
         setLoading(false);
       } catch (error) {
         console.error('❌ Erreur lors du chargement des offres:', error);
+        
+        // Fallback: charger seulement depuis le service local
+        try {
+          console.log('🔄 Fallback: chargement depuis le service local uniquement...');
+          const allLocalOffers = offersService.getAll();
+          const publishedLocalOffers = allLocalOffers.filter(offer => offer.status === 'published');
+          
+          const localTransformedOffers: InternshipOffer[] = publishedLocalOffers.map((offer: any) => ({
+            id: `local_${offer.id}`,
+            title: offer.title,
+            company: offer.recruiterName || 'Entreprise non spécifiée',
+            location: offer.location || 'Localisation non spécifiée',
+            duration: offer.contractType || 'Non spécifié',
+            description: offer.description,
+            requirements: [],
+            applicationDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            salary: undefined,
+            type: 'stage',
+            remote: false,
+            isPremium: false,
+            views: 0,
+            applications: 0,
+            rating: 4.0,
+            logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop',
+            tags: [],
+            recruiterId: offer.recruiterId,
+            recruiterName: offer.recruiterName,
+            createdAt: offer.publishedAt,
+            status: 'active'
+          }));
+          
+          setOffers(localTransformedOffers);
+          toast({
+            title: "Mode hors ligne",
+            description: "Chargement depuis les données locales uniquement",
+            variant: "default",
+          });
+        } catch (fallbackError) {
+          console.error('❌ Erreur lors du fallback:', fallbackError);
+          setOffers([]);
+          toast({
+            title: "Erreur de chargement",
+            description: "Impossible de charger les offres",
+            variant: "destructive",
+          });
+        }
+        
         setLoading(false);
       }
     };
 
     loadOffers();
-  }, []);
+  }, [toast]);
 
   // Charger les candidatures de l'utilisateur
   useEffect(() => {
