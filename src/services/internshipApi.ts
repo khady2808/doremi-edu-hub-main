@@ -1,20 +1,22 @@
 import { API_CONFIG, buildApiUrl } from '@/config/api';
 
-// Interface pour les données de stage de l'API
+// Interface pour les données de stage de l'API (format Laravel)
 export interface ApiInternship {
   id: number;
   title: string;
   description: string;
   company: string;
   location: string;
-  type: string;
-  duration: string;
-  requirements: string;
-  benefits: string;
-  application_deadline: string;
-  salary?: string;
-  remote: boolean;
+  start_date: string | null;
+  end_date: string | null;
+  duration: string | null;
+  requirements: string | null;
+  benefits: string | null;
+  salary: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
   status: string;
+  created_by: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -71,19 +73,24 @@ class InternshipApiService {
 
   // Transformer les données de l'API vers le format interne
   private transformApiData(apiData: ApiInternship): Internship {
+    // Utiliser end_date comme deadline, ou générer une date si absente
+    const deadline = apiData.end_date 
+      ? new Date(apiData.end_date).toISOString()
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 jours par défaut
+    
     return {
       id: apiData.id.toString(),
       title: apiData.title,
       description: apiData.description,
       company: apiData.company,
       location: apiData.location,
-      type: this.mapType(apiData.type),
-      duration: apiData.duration,
-      requirements: this.parseArrayField(apiData.requirements),
-      benefits: this.parseArrayField(apiData.benefits),
-      applicationDeadline: apiData.application_deadline,
-      salary: apiData.salary,
-      remote: apiData.remote,
+      type: 'stage', // Par défaut, toutes les offres sont des stages
+      duration: apiData.duration || 'Non spécifié',
+      requirements: apiData.requirements ? this.parseArrayField(apiData.requirements) : [],
+      benefits: apiData.benefits ? this.parseArrayField(apiData.benefits) : [],
+      applicationDeadline: deadline,
+      salary: apiData.salary || undefined,
+      remote: false, // Par défaut non-remote
       status: this.mapStatus(apiData.status),
       createdAt: apiData.created_at,
       updatedAt: apiData.updated_at,
@@ -93,7 +100,7 @@ class InternshipApiService {
       rating: 4.0 + Math.random() * 1.0,
       logo: `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop&seed=${apiData.company}`,
       image: `https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&h=400&fit=crop&seed=${apiData.title}`,
-      tags: this.generateTags(apiData.type, apiData.location)
+      tags: this.generateTags('stage', apiData.location)
     };
   }
 
@@ -132,26 +139,14 @@ class InternshipApiService {
 
   // Générer des tags basés sur le type et la localisation
   private generateTags(type: string, location: string): string[] {
-    const tags: string[] = [];
+    const tags: string[] = ['Stage', 'Formation'];
     
-    // Tags basés sur le type
-    const typeTags: Record<string, string[]> = {
-      'stage': ['Stage', 'Formation', 'Expérience'],
-      'alternance': ['Alternance', 'Formation', 'Contrat'],
-      'emploi': ['Emploi', 'CDI', 'CDD']
-    };
-    
-    const mappedType = this.mapType(type);
-    if (typeTags[mappedType]) {
-      tags.push(...typeTags[mappedType]);
-    }
-
     // Tags basés sur la localisation
-    if (location.toLowerCase().includes('dakar')) {
+    if (location && location.toLowerCase().includes('dakar')) {
       tags.push('Dakar');
-    } else if (location.toLowerCase().includes('thiès')) {
+    } else if (location && location.toLowerCase().includes('thiès')) {
       tags.push('Thiès');
-    } else if (location.toLowerCase().includes('saint-louis')) {
+    } else if (location && location.toLowerCase().includes('saint-louis')) {
       tags.push('Saint-Louis');
     }
 
