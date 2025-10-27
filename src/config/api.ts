@@ -35,6 +35,7 @@ export const API_CONFIG = {
     COURSES: '/courses',
     INTERNSHIPS: '/internships',
     DOCUMENTS: '/documents',
+    SCHOOLS: '/schools',
     USERS: '/users',
     AUTH: {
       LOGIN: '/login',
